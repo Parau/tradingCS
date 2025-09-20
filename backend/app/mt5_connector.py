@@ -18,21 +18,12 @@ async def initialize_mt5():
     """
     global _is_connected
 
-    login = int(os.getenv("MT5_LOGIN", "123456"))
-    password = os.getenv("MT5_PASSWORD", "password")
-    server = os.getenv("MT5_SERVER", "server")
-    path = os.getenv("MT5_PATH", "") # Ex: C:\\Program Files\\MetaTrader 5\\terminal64.exe
 
     while not _is_connected:
         print("Tentando conectar ao MetaTrader 5...")
         # A inicialização do MT5 pode ser bloqueante, mas é feita apenas uma vez no startup.
         # Para cenários mais complexos, poderia ser movido para um executor de thread.
-        initialized = mt5.initialize(
-            path=path if path else None,
-            login=login,
-            password=password,
-            server=server
-        )
+        initialized = mt5.initialize()
 
         if initialized:
             print("Conexão com MetaTrader 5 estabelecida com sucesso.")
