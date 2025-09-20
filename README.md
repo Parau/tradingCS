@@ -47,25 +47,11 @@ pip install -r frontend_pyqt/requirements.txt
 
 ### 3. Configuração do MetaTrader 5
 
-Antes de iniciar o servidor, você precisa fornecer suas credenciais do MT5.
+A nova abordagem de conexão é muito mais simples. O sistema irá se conectar a uma instância do MetaTrader 5 que já esteja em execução no seu computador.
 
-1.  Navegue até o diretório `backend`.
-2.  Renomeie o arquivo `.env.example` para `.env`.
-3.  Abra o arquivo `.env` e preencha com os seus dados:
+**Requisito:** Antes de iniciar o servidor, **certifique-se de que o seu terminal MetaTrader 5 está aberto e logado na sua conta.**
 
-    ```dotenv
-    # Seu número de login da conta MT5
-    MT5_LOGIN=12345678
-
-    # Sua senha da conta MT5
-    MT5_PASSWORD="sua_senha"
-
-    # O nome do servidor da sua corretora
-    MT5_SERVER="NomeDoServidor"
-
-    # (Opcional) O caminho para o executável do MT5 se não for encontrado automaticamente
-    MT5_PATH="C:\\Program Files\\MetaTrader 5\\terminal64.exe"
-    ```
+Não é mais necessário configurar credenciais em um arquivo `.env`.
 
 ### 4. Executando a Aplicação
 
