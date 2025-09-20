@@ -1,5 +1,4 @@
 // #region Pane Renderer
-// Este objeto é responsável apenas por desenhar na tela.
 class RectanglePaneRenderer {
 	constructor(view) {
 		this._view = view;
@@ -7,22 +6,23 @@ class RectanglePaneRenderer {
 
 	draw(target) {
 		target.useBitmapCoordinateSpace(scope => {
-			const view = this._view;
-			if (!view.visible() || view.points().p1.x === null || view.points().p1.y === null || view.points().p2.x === null || view.points().p2.y === null) {
+			if (!this._view.visible()) return;
+			const points = this._view.points();
+			if (points.p1.x === null || points.p1.y === null || points.p2.x === null || points.p2.y === null) {
                 return;
             }
 			const ctx = scope.context;
-			const x = Math.min(view.points().p1.x, view.points().p2.x);
-            const y = Math.min(view.points().p1.y, view.points().p2.y);
-            const width = Math.abs(view.points().p2.x - view.points().p1.x);
-            const height = Math.abs(view.points().p2.y - view.points().p1.y);
+			const x = Math.min(points.p1.x, points.p2.x);
+            const y = Math.min(points.p1.y, points.p2.y);
+            const width = Math.abs(points.p2.x - points.p1.x);
+            const height = Math.abs(points.p2.y - points.p1.y);
 
             if (width <= 0 || height <= 0) {
                 return;
             }
-			ctx.strokeStyle = view.color();
+			ctx.strokeStyle = this._view.color();
             ctx.lineWidth = 1;
-            ctx.setLineDash([2, 3]); // Linha pontilhada
+            ctx.setLineDash([2, 3]);
             ctx.beginPath();
             ctx.rect(x, y, width, height);
             ctx.stroke();
@@ -32,8 +32,6 @@ class RectanglePaneRenderer {
 // #endregion
 
 // #region Pane View
-// Este objeto representa a visão do primitivo no painel principal do gráfico.
-// Ele calcula as coordenadas e retorna o objeto Renderer.
 class RectanglePaneView {
 	constructor(source) {
 		this._source = source;
@@ -60,27 +58,15 @@ class RectanglePaneView {
 		return this._renderer;
 	}
 
-    visible() {
-        return this._source.visible();
-    }
-
-    points() {
-        return this._points;
-    }
-
-    color() {
-        return this._source.color();
-    }
-
-    zOrder() {
-        return 'top';
-    }
+    visible() { return this._source.visible(); }
+    points() { return this._points; }
+    color() { return this._source.color(); }
+    zOrder() { return 'top'; }
 }
 // #endregion
 
 // #region Primitive
-// Este é o objeto principal, a "fonte" de dados para o nosso primitivo.
-// Ele é o que é anexado à série do gráfico.
+// Esta é a implementação final e correta, que segue a interface ISeriesPrimitive.
 class RectanglePrimitive {
 	constructor(chart, series, p1, p2, color, visible = true) {
 		this._chart = chart;
@@ -95,29 +81,19 @@ class RectanglePrimitive {
 		this._paneViews.forEach(view => view.update());
 	}
 
-	paneViews() {
-		return this._paneViews;
-	}
+	// Métodos obrigatórios da interface ISeriesPrimitive
+	paneViews() { return this._paneViews; }
+	timeAxisViews() { return []; } // Não desenhamos nada no eixo do tempo
+	priceAxisViews() { return []; } // Não desenhamos nada no eixo de preço
+    priceAxisPaneViews() { return []; }
+    timeAxisPaneViews() { return []; }
 
-    chart() {
-        return this._chart;
-    }
-
-    series() {
-        return this._series;
-    }
-
-    points() {
-        return this._points;
-    }
-
-    color() {
-        return this._color;
-    }
-
-    visible() {
-        return this._visible;
-    }
+    // Métodos de acesso para as Views
+    chart() { return this._chart; }
+    series() { return this._series; }
+    points() { return this._points; }
+    color() { return this._color; }
+    visible() { return this._visible; }
 
     setVisible(visible) {
         this._visible = visible;
