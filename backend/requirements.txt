@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+MetaTrader5
+pandas
+python-socketio
+aiofiles
+python-dotenv
+pytz
+PyQt6
+requests
