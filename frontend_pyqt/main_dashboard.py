@@ -150,8 +150,8 @@ class MainDashboard(QMainWindow):
 
 
     def open_chart(self):
-        chart_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend_web', 'index.html'))
-        webbrowser.open(f'file://{chart_path}')
+        # Abre a URL raiz, que agora é servida pelo FastAPI
+        webbrowser.open('http://127.0.0.1:8000/')
 
     def open_marker_table(self):
         # Cria a janela se ela não existir, ou a traz para frente se já existir
