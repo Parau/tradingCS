@@ -16,8 +16,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Chart Initialization ---
     const chart = LightweightCharts.createChart(chartContainer, {
-        width: chartContainer.clientWidth,
-        height: chartContainer.clientHeight,
         layout: {
             backgroundColor: '#111827', // bg-gray-900
             textColor: 'rgba(255, 255, 255, 0.9)',
