@@ -92,15 +92,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Data Fetching and WebSocket ---
     async function loadChartData() {
         const timeframe = timeframeSelect.value;
-        const start = startDateInput.value;
-        const end = endDateInput.value;
 
-        if (!start || !end) {
+        // Pega os valores dos inputs (ex: "2025-09-19T09:00")
+        const startLocalValue = startDateInput.value;
+        const endLocalValue = endDateInput.value;
+
+        if (!startLocalValue || !endLocalValue) {
             alert('Por favor, selecione data de início e fim.');
             return;
         }
 
-        const url = `${API_BASE_URL}/api/history/${SYMBOL}?timeframe=${timeframe}&start=${start}:00&end=${end}:00`;
+        // Converte o horário local do input para um objeto Date do JS,
+        // e então para uma string ISO 8601 em UTC.
+        // O navegador lida com a conversão do fuso horário local para UTC.
+        const startUTC = new Date(startLocalValue).toISOString();
+        const endUTC = new Date(endLocalValue).toISOString();
+
+        const url = `${API_BASE_URL}/api/history/${SYMBOL}?timeframe=${timeframe}&start=${startUTC}&end=${endUTC}`;
 
         try {
             console.log(`Fetching: ${url}`);
