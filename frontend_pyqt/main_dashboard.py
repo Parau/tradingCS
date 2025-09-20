@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QStatusBar
 )
-from PyQt6.QtCore import QTimer, QProcess
+from PyQt6.QtCore import QTimer, QProcess, QProcessEnvironment
 
 # Importa a janela da tabela de marcações
 from marker_table_window import MarkerTableWindow
@@ -81,6 +81,12 @@ class MainDashboard(QMainWindow):
             # Usamos QProcess para melhor integração com o event loop do PyQt
             self.server_process = QProcess(self)
             self.server_process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+
+            # Força o subprocesso a usar UTF-8, resolvendo erros de decodificação no Windows
+            env = QProcessEnvironment.systemEnvironment()
+            env.insert("PYTHONUTF8", "1")
+            self.server_process.setProcessEnvironment(env)
+
             self.server_process.readyReadStandardOutput.connect(self.handle_server_output)
             self.server_process.start(python_executable, [backend_run_script])
 
