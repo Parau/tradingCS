@@ -74,13 +74,18 @@ class RectanglePlugin {
 
     _createPrimitiveFromMarker(marker) {
         // Converte a data e hora em um timestamp Unix (em segundos)
-        // Ex: "2025-09-20" e "10:00" -> timestamp
         const startTimeStr = `${marker.Data}T${marker.Hora}:00`;
-        const time1 = new Date(startTimeStr).getTime() / 1000;
+        let time1 = new Date(startTimeStr).getTime() / 1000;
 
         // O fim é às 18h do mesmo dia
         const endTimeStr = `${marker.Data}T18:00:00`;
-        const time2 = new Date(endTimeStr).getTime() / 1000;
+        let time2 = new Date(endTimeStr).getTime() / 1000;
+
+        // HACK: Aplica o mesmo ajuste de -3 horas que é feito no backend.
+        // Isso alinha os timestamps das marcações com os timestamps das velas.
+        const timezoneHackOffset = 10800; // 3 * 60 * 60
+        time1 -= timezoneHackOffset;
+        time2 -= timezoneHackOffset;
 
         const price1 = marker.Preco + 1.0;
         const price2 = marker.Preco - 1.0;
