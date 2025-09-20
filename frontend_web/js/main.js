@@ -1,9 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Adiciona um pequeno delay para garantir que o layout do DOM foi totalmente calculado pelo navegador.
-    // Isso resolve uma "race condition" em que o contêiner do gráfico pode ter tamanho zero no momento da criação.
-    setTimeout(() => {
-        const chartContainer = document.getElementById('chart-container');
-        const startDateInput = document.getElementById('start-date');
+    const chartContainer = document.getElementById('chart-container');
+    const startDateInput = document.getElementById('start-date');
     const endDateInput = document.getElementById('end-date');
     const timeframeSelect = document.getElementById('timeframe');
     const updateButton = document.getElementById('update-chart');
@@ -31,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
         timeScale: { timeVisible: true, secondsVisible: false },
     });
 
-    candlestickSeries = chart.addCandlestickSeries({
+    candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
         upColor: '#10B981', // green-500
         downColor: '#EF4444', // red-500
         borderDownColor: '#EF4444',
@@ -140,9 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
         chart.resize(chartContainer.clientWidth, chartContainer.clientHeight);
     });
 
-        // --- Initial Load ---
-        setDefaultDates();
-        loadChartData();
-        setupWebSocket();
-    }, 100); // Atraso de 100ms
+    // --- Initial Load ---
+    setDefaultDates();
+    loadChartData();
+    setupWebSocket();
 });
