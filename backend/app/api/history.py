@@ -8,17 +8,26 @@ from .. import mt5_connector
 
 router = APIRouter()
 
-# Mapeamento de timeframes amigáveis para constantes do MT5
-TIMEFRAME_MAP = {
-    "M1": mt5_connector.get_mt5_instance().TIMEFRAME_M1,
-    "M5": mt5_connector.get_mt5_instance().TIMEFRAME_M5,
-    "M15": mt5_connector.get_mt5_instance().TIMEFRAME_M15,
-    "M30": mt5_connector.get_mt5_instance().TIMEFRAME_M30,
-    "H1": mt5_connector.get_mt5_instance().TIMEFRAME_H1,
-}
-
 # Timezone de São Paulo para usar como padrão
 SAO_PAULO_TZ = pytz.timezone("America/Sao_Paulo")
+
+_TIMEFRAME_MAP = None
+
+def get_timeframe_map():
+    """
+    Retorna o mapeamento de timeframes. Inicializa na primeira chamada
+    para garantir que a conexão com o MT5 já exista.
+    """
+    global _TIMEFRAME_MAP
+    if _TIMEFRAME_MAP is None:
+        mt5 = mt5_connector.get_mt5_instance()
+        if not mt5:
+             raise HTTPException(status_code=503, detail="Serviço MT5 indisponível para mapear timeframes.")
+        _TIMEFRAME_MAP = {
+            "M1": mt5.TIMEFRAME_M1, "M5": mt5.TIMEFRAME_M5, "M15": mt5.TIMEFRAME_M15,
+            "M30": mt5.TIMEFRAME_M30, "H1": mt5.TIMEFRAME_H1,
+        }
+    return _TIMEFRAME_MAP
 
 def parse_and_localize_time(time_str: str) -> datetime:
     """Converte uma string ISO 8601 para um objeto datetime ciente do fuso horário (UTC)."""
@@ -67,10 +76,11 @@ async def get_history(
     """
     Fornece dados históricos de velas (candlesticks) para um ativo específico.
     """
-    if timeframe not in TIMEFRAME_MAP:
+    timeframe_map = get_timeframe_map()
+    if timeframe not in timeframe_map:
         raise HTTPException(status_code=400, detail=f"Timeframe inválido: '{timeframe}'. Use M1, M5, M15, M30 ou H1.")
 
-    timeframe_mt5 = TIMEFRAME_MAP[timeframe]
+    timeframe_mt5 = timeframe_map[timeframe]
     start_utc = parse_and_localize_time(start)
     end_utc = parse_and_localize_time(end)
 
