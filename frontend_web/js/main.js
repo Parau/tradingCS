@@ -178,4 +178,25 @@ document.addEventListener('DOMContentLoaded', () => {
     setDefaultDates();
     loadChartData();
     setupWebSocket();
+
+    // DEBUGGING: Forçar o desenho de um retângulo para testar o plugin (a pedido do usuário).
+    function drawDebugRectangle() {
+        console.log("DEBUG: Forçando o desenho de um retângulo de teste.");
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const day = today.getDate();
+
+        const time1 = new Date(year, month, day, 10, 0).getTime() / 1000;
+        const time2 = new Date(year, month, day, 12, 0).getTime() / 1000;
+
+        const p1 = { time: time1, price: 5360 };
+        const p2 = { time: time2, price: 5340 };
+        const color = 'rgba(0, 255, 0, 0.7)'; // Verde brilhante para fácil visualização
+
+        const debugRectangle = new RectanglePrimitive(chart, candlestickSeries, p1, p2, color);
+        candlestickSeries.attachPrimitive(debugRectangle);
+        console.log("DEBUG: Primitivo de retângulo de teste anexado à série.");
+    }
+    setTimeout(drawDebugRectangle, 3000); // Atraso para garantir que o gráfico foi carregado
 });
