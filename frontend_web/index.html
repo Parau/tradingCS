@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gráfico WDOV25</title>
+    <!-- TailwindCSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lightweight Charts Standalone Library -->
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+    <style>
+        /* Garante que o body e o html ocupem toda a altura */
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* Evita barras de rolagem indesejadas */
+        }
+        #chart-container {
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col h-screen">
+
+    <!-- Header com os controles -->
+    <header class="bg-gray-800 p-2 shadow-md z-10">
+        <div class="container mx-auto flex items-center space-x-4">
+            <h1 class="text-xl font-bold">Gráfico WDOV25</h1>
+
+            <div class="flex items-center space-x-2">
+                <label for="start-date" class="text-sm">Início:</label>
+                <input type="datetime-local" id="start-date" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm">
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <label for="end-date" class="text-sm">Fim:</label>
+                <input type="datetime-local" id="end-date" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm">
+            </div>
+
+            <div class="flex items-center space-x-2">
+                <label for="timeframe" class="text-sm">Timeframe:</label>
+                <select id="timeframe" class="bg-gray-700 border border-gray-600 rounded px-2 py-1 text-sm">
+                    <option value="M1">1 Minuto</option>
+                    <option value="M5" selected>5 Minutos</option>
+                    <option value="M15">15 Minutos</option>
+                    <option value="M30">30 Minutos</option>
+                    <option value="H1">60 Minutos</option>
+                </select>
+            </div>
+
+            <button id="update-chart" class="bg-blue-600 hover:bg-blue-700 rounded px-4 py-1 text-sm font-semibold">Atualizar Gráfico</button>
+            <div id="ws-status" class="text-sm font-mono">Status: <span class="text-gray-500">Desconectado</span></div>
+        </div>
+    </header>
+
+    <!-- Container do Gráfico -->
+    <main class="flex-grow">
+        <div id="chart-container"></div>
+    </main>
+
+    <!-- Nossos scripts -->
+    <script src="js/rectangle_plugin.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
