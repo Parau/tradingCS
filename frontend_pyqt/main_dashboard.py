@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QPushButton, QLabel, QStatusBar
 )
-from PyQt6.QtCore import QTimer, QProcess
+from PyQt6.QtCore import QTimer, QProcess, QProcessEnvironment
 
 # Importa a janela da tabela de marcações
 from marker_table_window import MarkerTableWindow
@@ -81,6 +81,12 @@ class MainDashboard(QMainWindow):
             # Usamos QProcess para melhor integração com o event loop do PyQt
             self.server_process = QProcess(self)
             self.server_process.setProcessChannelMode(QProcess.ProcessChannelMode.MergedChannels)
+
+            # Força o subprocesso a usar UTF-8, resolvendo erros de decodificação no Windows
+            env = QProcessEnvironment.systemEnvironment()
+            env.insert("PYTHONUTF8", "1")
+            self.server_process.setProcessEnvironment(env)
+
             self.server_process.readyReadStandardOutput.connect(self.handle_server_output)
             self.server_process.start(python_executable, [backend_run_script])
 
@@ -148,8 +154,8 @@ class MainDashboard(QMainWindow):
 
 
     def open_chart(self):
-        chart_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'frontend_web', 'index.html'))
-        webbrowser.open(f'file://{chart_path}')
+        # Abre a URL raiz, que agora é servida pelo FastAPI
+        webbrowser.open('http://127.0.0.1:8000/')
 
     def open_marker_table(self):
         # Cria a janela se ela não existir, ou a traz para frente se já existir

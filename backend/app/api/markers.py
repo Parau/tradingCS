@@ -1,4 +1,5 @@
 import json
+import asyncio
 from typing import List, Literal
 
 from fastapi import APIRouter, HTTPException, Body
@@ -63,6 +64,3 @@ async def receive_and_broadcast_markers(data: MarkerData = Body(...)):
     except Exception as e:
         # Captura erros inesperados durante a transmissão
         raise HTTPException(status_code=500, detail=f"Erro ao transmitir marcações: {e}")
-
-# É necessário importar o asyncio para o gather
-import asyncio
