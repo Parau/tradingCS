@@ -142,8 +142,15 @@ document.addEventListener('DOMContentLoaded', () => {
         setupWebSocket();
     });
 
-    // O listener de resize manual foi removido. A biblioteca gerencia isso
-    // automaticamente com a opção padrão `autoSize: true`.
+    // --- Event Listeners ---
+    updateButton.addEventListener('click', () => {
+        loadChartData();
+        setupWebSocket();
+    });
+
+    window.addEventListener('resize', () => {
+        chart.resize(chartContainer.clientWidth, chartContainer.clientHeight);
+    });
 
     // --- Initial Load ---
     setDefaultDates();
