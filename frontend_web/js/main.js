@@ -20,6 +20,9 @@ document.addEventListener('DOMContentLoaded', () => {
             background: { type: 'solid', color: '#000000' },
             textColor: 'rgba(255, 255, 255, 0.9)',
         },
+        localization: {
+            locale: 'pt-BR',
+        },
         grid: {
             vertLines: { color: 'rgba(197, 203, 206, 0.5)' },
             horzLines: { color: 'rgba(197, 203, 206, 0.5)' },
@@ -34,33 +37,14 @@ document.addEventListener('DOMContentLoaded', () => {
             borderColor: 'rgba(197, 203, 206, 0.8)',
             timeVisible: true,
             secondsVisible: false,
-            // Formata o tempo para o fuso horário de São Paulo (UTC-3)
-            tickMarkFormatter: (time, tickMarkType, locale) => {
+            tickMarkFormatter: time => {
                 const date = new Date(time * 1000);
-                // Usamos toLocaleString para obter a data e hora formatada corretamente
-                // para o Brasil, no fuso horário de São Paulo.
-                // Isso garante que 12:00 UTC seja exibido como 09:00.
-                const options = {
-                    year: '2-digit',
-                    month: '2-digit',
-                    day: '2-digit',
+                return date.toLocaleTimeString('pt-BR', {
+                    timeZone: 'America/Sao_Paulo',
                     hour: '2-digit',
                     minute: '2-digit',
-                    timeZone: 'America/Sao_Paulo',
-                };
-                // O tickMarkFormatter pode ser chamado para diferentes níveis de zoom.
-                // Podemos querer mostrar apenas a hora, ou data + hora.
-                // Por simplicidade, vamos mostrar a hora para os ticks mais comuns.
-                // LightweightCharts.TickMarkType.Year = 0;
-                // LightweightCharts.TickMarkType.Month = 1;
-                // LightweightCharts.TickMarkType.DayOfMonth = 2;
-                // LightweightCharts.TickMarkType.Time = 3;
-                // LightweightCharts.TickMarkType.TimeWithSeconds = 4;
-                if (tickMarkType === 3 || tickMarkType === 4) {
-                     return date.toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' });
-                }
-                // Para outros tipos de marcação (dia, mês, ano), podemos usar um formato diferente.
-                return date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+                    hour12: false,
+                });
             },
         },
     });
@@ -92,23 +76,16 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Data Fetching and WebSocket ---
     async function loadChartData() {
         const timeframe = timeframeSelect.value;
+        const start = startDateInput.value;
+        const end = endDateInput.value;
 
-        // Pega os valores dos inputs (ex: "2025-09-19T09:00")
-        const startLocalValue = startDateInput.value;
-        const endLocalValue = endDateInput.value;
-
-        if (!startLocalValue || !endLocalValue) {
+        if (!start || !end) {
             alert('Por favor, selecione data de início e fim.');
             return;
         }
 
-        // Converte o horário local do input para um objeto Date do JS,
-        // e então para uma string ISO 8601 em UTC.
-        // O navegador lida com a conversão do fuso horário local para UTC.
-        const startUTC = new Date(startLocalValue).toISOString();
-        const endUTC = new Date(endLocalValue).toISOString();
-
-        const url = `${API_BASE_URL}/api/history/${SYMBOL}?timeframe=${timeframe}&start=${startUTC}&end=${endUTC}`;
+        // Envia a string "ingênua", o backend vai interpretar como America/Sao_Paulo
+        const url = `${API_BASE_URL}/api/history/${SYMBOL}?timeframe=${timeframe}&start=${start}:00&end=${end}:00`;
 
         try {
             console.log(`Fetching: ${url}`);
@@ -171,12 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
             wsStatus.className = 'text-red-500';
         };
     }
-
-    // --- Event Listeners ---
-    updateButton.addEventListener('click', () => {
-        loadChartData();
-        setupWebSocket();
-    });
 
     // --- Event Listeners ---
     updateButton.addEventListener('click', () => {

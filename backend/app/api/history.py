@@ -46,7 +46,7 @@ def fetch_rates_from_mt5(symbol: str, timeframe_mt5: int, start_utc: datetime, e
     # Seleciona apenas as colunas necessárias para a resposta
     df = df[['time', 'open', 'high', 'low', 'close']]
 
-    # Converte o DataFrame para uma lista de dicionários
+    # Converte o DataFrame para uma lista de dicionários e retorna
     return df.to_dict(orient='records')
 
 @router.get("/history/{symbol}")
