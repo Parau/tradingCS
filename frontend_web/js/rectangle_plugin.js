@@ -1,97 +1,127 @@
-class RectanglePrimitive {
-    constructor(time1, price1, time2, price2, color) {
-        this._time1 = time1;
-        this._price1 = price1;
-        this._time2 = time2;
-        this._price2 = price2;
-        this._color = color;
+// #region Pane Renderer
+// Este objeto é responsável apenas por desenhar na tela.
+class RectanglePaneRenderer {
+	constructor(view) {
+		this._view = view;
+	}
 
-        // As coordenadas em pixels serão calculadas no `update`
-        this._x1 = 0;
-        this._y1 = 0;
-        this._x2 = 0;
-        this._y2 = 0;
+	draw(target) {
+		target.useBitmapCoordinateSpace(scope => {
+			const view = this._view;
+			if (!view.visible() || view.points().p1.x === null || view.points().p1.y === null || view.points().p2.x === null || view.points().p2.y === null) {
+                return;
+            }
+			const ctx = scope.context;
+			const x = Math.min(view.points().p1.x, view.points().p2.x);
+            const y = Math.min(view.points().p1.y, view.points().p2.y);
+            const width = Math.abs(view.points().p2.x - view.points().p1.x);
+            const height = Math.abs(view.points().p2.y - view.points().p1.y);
+
+            if (width <= 0 || height <= 0) {
+                return;
+            }
+			ctx.strokeStyle = view.color();
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 3]); // Linha pontilhada
+            ctx.beginPath();
+            ctx.rect(x, y, width, height);
+            ctx.stroke();
+		});
+	}
+}
+// #endregion
+
+// #region Pane View
+// Este objeto representa a visão do primitivo no painel principal do gráfico.
+// Ele calcula as coordenadas e retorna o objeto Renderer.
+class RectanglePaneView {
+	constructor(source) {
+		this._source = source;
+		this._renderer = new RectanglePaneRenderer(this);
+        this._points = {
+            p1: { x: null, y: null },
+            p2: { x: null, y: null },
+        };
+	}
+
+	update() {
+		const series = this._source.series();
+		const timeScale = this._source.chart().timeScale();
+		const p1 = this._source.points().p1;
+		const p2 = this._source.points().p2;
+
+		this._points.p1.x = timeScale.timeToCoordinate(p1.time);
+		this._points.p1.y = series.priceToCoordinate(p1.price);
+		this._points.p2.x = timeScale.timeToCoordinate(p2.time);
+		this._points.p2.y = series.priceToCoordinate(p2.price);
+	}
+
+	renderer() {
+		return this._renderer;
+	}
+
+    visible() {
+        return this._source.visible();
     }
 
-    update(data) {
-        const { chart, series } = data;
-
-        // Converte as coordenadas de tempo/preço para coordenadas de pixel
-        const timeScale = chart.timeScale();
-        const priceScale = series.priceScale();
-
-        this._x1 = timeScale.timeToCoordinate(this._time1);
-        this._y1 = priceScale.priceToCoordinate(this._price1);
-        this._x2 = timeScale.timeToCoordinate(this._time2);
-        this._y2 = priceScale.priceToCoordinate(this._price2);
+    points() {
+        return this._points;
     }
 
-    draw(ctx) {
-        // Desenha o retângulo no canvas
-        ctx.save();
-
-        const x = Math.min(this._x1, this._x2);
-        const y = Math.min(this._y1, this._y2);
-        const width = Math.abs(this._x2 - this._x1);
-        const height = Math.abs(this._y2 - this._y1);
-
-        if (x === null || y === null || width <= 0 || height <= 0) {
-            ctx.restore();
-            return;
-        }
-
-        ctx.strokeStyle = this._color;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([2, 3]); // Define a linha como pontilhada
-
-        ctx.beginPath();
-        ctx.rect(x, y, width, height);
-        ctx.stroke();
-
-        ctx.restore();
+    color() {
+        return this._source.color();
     }
 
-    // Define que o desenho deve ficar por cima das velas
     zOrder() {
         return 'top';
     }
 }
+// #endregion
 
-class RectanglePlugin {
-    constructor() {
-        this._primitives = [];
+// #region Primitive
+// Este é o objeto principal, a "fonte" de dados para o nosso primitivo.
+// Ele é o que é anexado à série do gráfico.
+class RectanglePrimitive {
+	constructor(chart, series, p1, p2, color, visible = true) {
+		this._chart = chart;
+		this._series = series;
+		this._paneViews = [new RectanglePaneView(this)];
+        this._points = { p1, p2 };
+        this._color = color;
+        this._visible = visible;
+	}
+
+	updateAllViews() {
+		this._paneViews.forEach(view => view.update());
+	}
+
+	paneViews() {
+		return this._paneViews;
+	}
+
+    chart() {
+        return this._chart;
     }
 
-    // Método chamado pelo gráfico para obter os primitivos a serem desenhados
-    updateAllViews() {
-        return this._primitives;
+    series() {
+        return this._series;
     }
 
-    // Método para definir os dados das marcações
-    setData(markers) {
-        this._primitives = markers.map(marker => this._createPrimitiveFromMarker(marker));
+    points() {
+        return this._points;
     }
 
-    _createPrimitiveFromMarker(marker) {
-        // Converte a data e hora em um timestamp Unix (em segundos)
-        const startTimeStr = `${marker.Data}T${marker.Hora}:00`;
-        let time1 = new Date(startTimeStr).getTime() / 1000;
+    color() {
+        return this._color;
+    }
 
-        // O fim é às 18h do mesmo dia
-        const endTimeStr = `${marker.Data}T18:00:00`;
-        let time2 = new Date(endTimeStr).getTime() / 1000;
+    visible() {
+        return this._visible;
+    }
 
-        // HACK: Aplica o mesmo ajuste de -3 horas que é feito no backend.
-        // Isso alinha os timestamps das marcações com os timestamps das velas.
-        const timezoneHackOffset = 10800; // 3 * 60 * 60
-        time1 -= timezoneHackOffset;
-        time2 -= timezoneHackOffset;
-
-        const price1 = marker.Preco + 1.0;
-        const price2 = marker.Preco - 1.0;
-
-        const color = marker.Tipo === 'POC_VENDA' ? 'rgba(239, 68, 68, 0.7)' : 'rgba(16, 185, 129, 0.7)'; // red-500, green-500
-
-        return new RectanglePrimitive(time1, price1, time2, price2, color);
+    setVisible(visible) {
+        this._visible = visible;
+        this.updateAllViews();
     }
 }
+// #endregion

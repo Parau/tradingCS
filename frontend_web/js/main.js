@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let websocket;
     let candlestickSeries;
-    let rectanglePlugin;
+    let activeMarkers = []; // Array para rastrear os retângulos no gráfico
 
     // --- Chart Initialization ---
     const chart = LightweightCharts.createChart(chartContainer, {
@@ -59,8 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Plugin Initialization ---
-    rectanglePlugin = new RectanglePlugin();
-    candlestickSeries.attachPrimitive(rectanglePlugin);
+    // A inicialização agora é feita dinamicamente quando os dados chegam.
 
     // --- Date Initialization ---
     function setDefaultDates() {
@@ -125,14 +124,30 @@ document.addEventListener('DOMContentLoaded', () => {
         websocket.onmessage = (event) => {
             const message = JSON.parse(event.data);
             if (message.type === 'candle') {
-                // console.log('Candle update received:', message.data);
                 candlestickSeries.update(message.data);
             } else if (message.type === 'markers') {
                 console.log('Marker data received:', message.data);
-                rectanglePlugin.setData(message.data);
-                // O gráfico precisa ser "notificado" para redesenhar os primitivos.
-                // Forçar um pequeno ajuste no timescale faz isso.
-                chart.timeScale().scrollToPosition(chart.timeScale().scrollPosition());
+
+                // 1. Remove os marcadores antigos
+                activeMarkers.forEach(marker => candlestickSeries.detachPrimitive(marker));
+                activeMarkers = [];
+
+                // 2. Cria e anexa os novos marcadores
+                message.data.forEach(markerData => {
+                    const p1 = {
+                        time: new Date(`${markerData.Data}T${markerData.Hora}:00`).getTime() / 1000,
+                        price: markerData.Preco + 1.0
+                    };
+                    const p2 = {
+                        time: new Date(`${markerData.Data}T18:00:00`).getTime() / 1000,
+                        price: markerData.Preco - 1.0
+                    };
+                    const color = markerData.Tipo === 'POC_VENDA' ? 'rgba(239, 68, 68, 0.7)' : 'rgba(16, 185, 129, 0.7)';
+
+                    const newRectangle = new RectanglePrimitive(chart, candlestickSeries, p1, p2, color);
+                    candlestickSeries.attachPrimitive(newRectangle);
+                    activeMarkers.push(newRectangle);
+                });
             }
         };
 
