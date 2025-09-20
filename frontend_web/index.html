@@ -16,10 +16,7 @@
             padding: 0;
             overflow: hidden; /* Evita barras de rolagem indesejadas */
         }
-        #chart-container {
-            width: 100%;
-            height: 100%;
-        }
+        /* O CSS para o contêiner do gráfico foi removido, pois agora é controlado por classes do Tailwind. */
     </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col h-screen">
@@ -56,8 +53,8 @@
     </header>
 
     <!-- Container do Gráfico -->
-    <main class="flex-grow">
-        <div id="chart-container"></div>
+    <main class="flex-grow relative">
+        <div id="chart-container" class="absolute inset-0"></div>
     </main>
 
     <!-- Nossos scripts -->
