@@ -13,26 +13,15 @@ _is_connected = False
 
 async def initialize_mt5():
     """
-    Inicializa a conexão com o terminal MetaTrader 5.
+    Inicializa a conexão com o terminal MetaTrader 5 em execução.
     Tenta reconectar em caso de falha.
     """
     global _is_connected
 
-    login = int(os.getenv("MT5_LOGIN", "123456"))
-    password = os.getenv("MT5_PASSWORD", "password")
-    server = os.getenv("MT5_SERVER", "server")
-    path = os.getenv("MT5_PATH", "") # Ex: C:\\Program Files\\MetaTrader 5\\terminal64.exe
-
     while not _is_connected:
-        print("Tentando conectar ao MetaTrader 5...")
-        # A inicialização do MT5 pode ser bloqueante, mas é feita apenas uma vez no startup.
-        # Para cenários mais complexos, poderia ser movido para um executor de thread.
-        initialized = mt5.initialize(
-            path=path if path else None,
-            login=login,
-            password=password,
-            server=server
-        )
+        print("Tentando conectar ao terminal MetaTrader 5...")
+        # Conecta-se a um terminal MT5 que já deve estar aberto e logado.
+        initialized = mt5.initialize()
 
         if initialized:
             print("Conexão com MetaTrader 5 estabelecida com sucesso.")
@@ -57,6 +46,16 @@ def is_connected():
     Verifica se a conexão com o MT5 está ativa.
     """
     return _is_connected
+
+# Mapeamento de timeframes amigáveis para constantes do MT5
+# Definido aqui para evitar importações circulares.
+TIMEFRAME_MAP = {
+    "M1": mt5.TIMEFRAME_M1,
+    "M5": mt5.TIMEFRAME_M5,
+    "M15": mt5.TIMEFRAME_M15,
+    "M30": mt5.TIMEFRAME_M30,
+    "H1": mt5.TIMEFRAME_H1,
+}
 
 def get_mt5_instance():
     """

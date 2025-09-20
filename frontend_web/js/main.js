@@ -12,25 +12,44 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let websocket;
     let candlestickSeries;
-    let rectanglePlugin;
+    let activeMarkers = []; // Array para rastrear os retângulos no gráfico
 
     // --- Chart Initialization ---
     const chart = LightweightCharts.createChart(chartContainer, {
-        width: chartContainer.clientWidth,
-        height: chartContainer.clientHeight,
         layout: {
-            backgroundColor: '#111827', // bg-gray-900
+            background: { type: 'solid', color: '#000000' },
             textColor: 'rgba(255, 255, 255, 0.9)',
         },
-        grid: {
-            vertLines: { color: '#374151' }, // bg-gray-700
-            horzLines: { color: '#374151' },
+        localization: {
+            locale: 'pt-BR',
         },
-        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        timeScale: { timeVisible: true, secondsVisible: false },
+        grid: {
+            vertLines: { color: 'rgba(197, 203, 206, 0.5)' },
+            horzLines: { color: 'rgba(197, 203, 206, 0.5)' },
+        },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+            borderColor: 'rgba(197, 203, 206, 0.8)',
+        },
+        timeScale: {
+            borderColor: 'rgba(197, 203, 206, 0.8)',
+            timeVisible: true,
+            secondsVisible: false,
+            tickMarkFormatter: time => {
+                const date = new Date(time * 1000);
+                return date.toLocaleTimeString('pt-BR', {
+                    timeZone: 'America/Sao_Paulo',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: false,
+                });
+            },
+        },
     });
 
-    candlestickSeries = chart.addCandlestickSeries({
+    candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
         upColor: '#10B981', // green-500
         downColor: '#EF4444', // red-500
         borderDownColor: '#EF4444',
@@ -40,8 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // --- Plugin Initialization ---
-    rectanglePlugin = new RectanglePlugin();
-    candlestickSeries.attachPrimitive(rectanglePlugin);
+    // A inicialização agora é feita dinamicamente quando os dados chegam.
 
     // --- Date Initialization ---
     function setDefaultDates() {
@@ -65,6 +83,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Envia a string "ingênua", o backend vai interpretar como America/Sao_Paulo
         const url = `${API_BASE_URL}/api/history/${SYMBOL}?timeframe=${timeframe}&start=${start}:00&end=${end}:00`;
 
         try {
@@ -105,14 +124,30 @@ document.addEventListener('DOMContentLoaded', () => {
         websocket.onmessage = (event) => {
             const message = JSON.parse(event.data);
             if (message.type === 'candle') {
-                // console.log('Candle update received:', message.data);
                 candlestickSeries.update(message.data);
             } else if (message.type === 'markers') {
                 console.log('Marker data received:', message.data);
-                rectanglePlugin.setData(message.data);
-                // O gráfico precisa ser "notificado" para redesenhar os primitivos.
-                // Forçar um pequeno ajuste no timescale faz isso.
-                chart.timeScale().scrollToPosition(chart.timeScale().scrollPosition());
+
+                // 1. Remove os marcadores antigos
+                activeMarkers.forEach(marker => candlestickSeries.detachPrimitive(marker));
+                activeMarkers = [];
+
+                // 2. Cria e anexa os novos marcadores
+                message.data.forEach(markerData => {
+                    const p1 = {
+                        time: new Date(`${markerData.Data}T${markerData.Hora}:00`).getTime() / 1000,
+                        price: markerData.Preco + 1.0
+                    };
+                    const p2 = {
+                        time: new Date(`${markerData.Data}T18:00:00`).getTime() / 1000,
+                        price: markerData.Preco - 1.0
+                    };
+                    const color = markerData.Tipo === 'POC_VENDA' ? 'rgba(239, 68, 68, 0.7)' : 'rgba(16, 185, 129, 0.7)';
+
+                    const newRectangle = new RectanglePrimitive(chart, candlestickSeries, p1, p2, color);
+                    candlestickSeries.attachPrimitive(newRectangle);
+                    activeMarkers.push(newRectangle);
+                });
             }
         };
 
@@ -143,4 +178,25 @@ document.addEventListener('DOMContentLoaded', () => {
     setDefaultDates();
     loadChartData();
     setupWebSocket();
+
+    // DEBUGGING: Forçar o desenho de um retângulo para testar o plugin (a pedido do usuário).
+    function drawDebugRectangle() {
+        console.log("DEBUG: Forçando o desenho de um retângulo de teste.");
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = today.getMonth();
+        const day = today.getDate();
+
+        const time1 = new Date(year, month, day, 10, 0).getTime() / 1000;
+        const time2 = new Date(year, month, day, 12, 0).getTime() / 1000;
+
+        const p1 = { time: time1, price: 5360 };
+        const p2 = { time: time2, price: 5340 };
+        const color = 'rgba(0, 255, 0, 0.7)'; // Verde brilhante para fácil visualização
+
+        const debugRectangle = new RectanglePrimitive(chart, candlestickSeries, p1, p2, color);
+        candlestickSeries.attachPrimitive(debugRectangle);
+        console.log("DEBUG: Primitivo de retângulo de teste anexado à série.");
+    }
+    setTimeout(drawDebugRectangle, 3000); // Atraso para garantir que o gráfico foi carregado
 });

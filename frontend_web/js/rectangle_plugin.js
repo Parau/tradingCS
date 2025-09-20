@@ -1,92 +1,103 @@
+// #region Pane Renderer
+class RectanglePaneRenderer {
+	constructor(view) {
+		this._view = view;
+	}
+
+	draw(target) {
+		target.useBitmapCoordinateSpace(scope => {
+			if (!this._view.visible()) return;
+			const points = this._view.points();
+			if (points.p1.x === null || points.p1.y === null || points.p2.x === null || points.p2.y === null) {
+                return;
+            }
+			const ctx = scope.context;
+			const x = Math.min(points.p1.x, points.p2.x);
+            const y = Math.min(points.p1.y, points.p2.y);
+            const width = Math.abs(points.p2.x - points.p1.x);
+            const height = Math.abs(points.p2.y - points.p1.y);
+
+            if (width <= 0 || height <= 0) {
+                return;
+            }
+			ctx.strokeStyle = this._view.color();
+            ctx.lineWidth = 1;
+            ctx.setLineDash([2, 3]);
+            ctx.beginPath();
+            ctx.rect(x, y, width, height);
+            ctx.stroke();
+		});
+	}
+}
+// #endregion
+
+// #region Pane View
+class RectanglePaneView {
+	constructor(source) {
+		this._source = source;
+		this._renderer = new RectanglePaneRenderer(this);
+        this._points = {
+            p1: { x: null, y: null },
+            p2: { x: null, y: null },
+        };
+	}
+
+	update() {
+		const series = this._source.series();
+		const timeScale = this._source.chart().timeScale();
+		const p1 = this._source.points().p1;
+		const p2 = this._source.points().p2;
+
+		this._points.p1.x = timeScale.timeToCoordinate(p1.time);
+		this._points.p1.y = series.priceToCoordinate(p1.price);
+		this._points.p2.x = timeScale.timeToCoordinate(p2.time);
+		this._points.p2.y = series.priceToCoordinate(p2.price);
+	}
+
+	renderer() {
+		return this._renderer;
+	}
+
+    visible() { return this._source.visible(); }
+    points() { return this._points; }
+    color() { return this._source.color(); }
+    zOrder() { return 'top'; }
+}
+// #endregion
+
+// #region Primitive
+// Esta é a implementação final e correta, que segue a interface ISeriesPrimitive.
 class RectanglePrimitive {
-    constructor(time1, price1, time2, price2, color) {
-        this._time1 = time1;
-        this._price1 = price1;
-        this._time2 = time2;
-        this._price2 = price2;
+	constructor(chart, series, p1, p2, color, visible = true) {
+		this._chart = chart;
+		this._series = series;
+		this._paneViews = [new RectanglePaneView(this)];
+        this._points = { p1, p2 };
         this._color = color;
+        this._visible = visible;
+	}
 
-        // As coordenadas em pixels serão calculadas no `update`
-        this._x1 = 0;
-        this._y1 = 0;
-        this._x2 = 0;
-        this._y2 = 0;
-    }
+	updateAllViews() {
+		this._paneViews.forEach(view => view.update());
+	}
 
-    update(data) {
-        const { chart, series } = data;
+	// Métodos obrigatórios da interface ISeriesPrimitive
+	paneViews() { return this._paneViews; }
+	timeAxisViews() { return []; } // Não desenhamos nada no eixo do tempo
+	priceAxisViews() { return []; } // Não desenhamos nada no eixo de preço
+    priceAxisPaneViews() { return []; }
+    timeAxisPaneViews() { return []; }
 
-        // Converte as coordenadas de tempo/preço para coordenadas de pixel
-        const timeScale = chart.timeScale();
-        const priceScale = series.priceScale();
+    // Métodos de acesso para as Views
+    chart() { return this._chart; }
+    series() { return this._series; }
+    points() { return this._points; }
+    color() { return this._color; }
+    visible() { return this._visible; }
 
-        this._x1 = timeScale.timeToCoordinate(this._time1);
-        this._y1 = priceScale.priceToCoordinate(this._price1);
-        this._x2 = timeScale.timeToCoordinate(this._time2);
-        this._y2 = priceScale.priceToCoordinate(this._price2);
-    }
-
-    draw(ctx) {
-        // Desenha o retângulo no canvas
-        ctx.save();
-
-        const x = Math.min(this._x1, this._x2);
-        const y = Math.min(this._y1, this._y2);
-        const width = Math.abs(this._x2 - this._x1);
-        const height = Math.abs(this._y2 - this._y1);
-
-        if (x === null || y === null || width <= 0 || height <= 0) {
-            ctx.restore();
-            return;
-        }
-
-        ctx.strokeStyle = this._color;
-        ctx.lineWidth = 1;
-        ctx.setLineDash([2, 3]); // Define a linha como pontilhada
-
-        ctx.beginPath();
-        ctx.rect(x, y, width, height);
-        ctx.stroke();
-
-        ctx.restore();
-    }
-
-    // Define que o desenho deve ficar por cima das velas
-    zOrder() {
-        return 'top';
+    setVisible(visible) {
+        this._visible = visible;
+        this.updateAllViews();
     }
 }
-
-class RectanglePlugin {
-    constructor() {
-        this._primitives = [];
-    }
-
-    // Método chamado pelo gráfico para obter os primitivos a serem desenhados
-    updateAllViews() {
-        return this._primitives;
-    }
-
-    // Método para definir os dados das marcações
-    setData(markers) {
-        this._primitives = markers.map(marker => this._createPrimitiveFromMarker(marker));
-    }
-
-    _createPrimitiveFromMarker(marker) {
-        // Converte a data e hora em um timestamp Unix (em segundos)
-        // Ex: "2025-09-20" e "10:00" -> timestamp
-        const startTimeStr = `${marker.Data}T${marker.Hora}:00`;
-        const time1 = new Date(startTimeStr).getTime() / 1000;
-
-        // O fim é às 18h do mesmo dia
-        const endTimeStr = `${marker.Data}T18:00:00`;
-        const time2 = new Date(endTimeStr).getTime() / 1000;
-
-        const price1 = marker.Preco + 1.0;
-        const price2 = marker.Preco - 1.0;
-
-        const color = marker.Tipo === 'POC_VENDA' ? 'rgba(239, 68, 68, 0.7)' : 'rgba(16, 185, 129, 0.7)'; // red-500, green-500
-
-        return new RectanglePrimitive(time1, price1, time2, price2, color);
-    }
-}
+// #endregion

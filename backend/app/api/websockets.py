@@ -6,7 +6,8 @@ from typing import Dict, List
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, HTTPException, Query
 
 from .. import mt5_connector
-from .history import TIMEFRAME_MAP, fetch_rates_from_mt5, parse_and_localize_time
+from ..mt5_connector import TIMEFRAME_MAP
+from .history import fetch_rates_from_mt5, parse_and_localize_time
 import pandas as pd
 
 router = APIRouter()
