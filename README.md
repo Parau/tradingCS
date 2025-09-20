@@ -32,12 +32,17 @@ O sistema é projetado com uma arquitetura de cliente-servidor desacoplada:
 
 ### 2. Instalação
 
-Clone o repositório e instale as dependências do Python:
+Clone o repositório e instale as dependências para o backend e para o frontend:
 
 ```bash
 git clone <url-do-repositorio>
 cd <diretorio-do-repositorio>
+
+# Instalar dependências do backend
 pip install -r backend/requirements.txt
+
+# Instalar dependências do frontend PyQt
+pip install -r frontend_pyqt/requirements.txt
 ```
 
 ### 3. Configuração do MetaTrader 5

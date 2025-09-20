@@ -5,17 +5,9 @@ import pytz
 from functools import lru_cache
 
 from .. import mt5_connector
+from ..mt5_connector import TIMEFRAME_MAP
 
 router = APIRouter()
-
-# Mapeamento de timeframes amigáveis para constantes do MT5
-TIMEFRAME_MAP = {
-    "M1": mt5_connector.get_mt5_instance().TIMEFRAME_M1,
-    "M5": mt5_connector.get_mt5_instance().TIMEFRAME_M5,
-    "M15": mt5_connector.get_mt5_instance().TIMEFRAME_M15,
-    "M30": mt5_connector.get_mt5_instance().TIMEFRAME_M30,
-    "H1": mt5_connector.get_mt5_instance().TIMEFRAME_H1,
-}
 
 # Timezone de São Paulo para usar como padrão
 SAO_PAULO_TZ = pytz.timezone("America/Sao_Paulo")

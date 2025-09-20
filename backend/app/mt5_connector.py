@@ -58,6 +58,16 @@ def is_connected():
     """
     return _is_connected
 
+# Mapeamento de timeframes amigáveis para constantes do MT5
+# Definido aqui para evitar importações circulares.
+TIMEFRAME_MAP = {
+    "M1": mt5.TIMEFRAME_M1,
+    "M5": mt5.TIMEFRAME_M5,
+    "M15": mt5.TIMEFRAME_M15,
+    "M30": mt5.TIMEFRAME_M30,
+    "H1": mt5.TIMEFRAME_H1,
+}
+
 def get_mt5_instance():
     """
     Retorna a instância do MT5 se conectado.
