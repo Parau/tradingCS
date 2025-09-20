@@ -17,15 +17,24 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Chart Initialization ---
     const chart = LightweightCharts.createChart(chartContainer, {
         layout: {
-            backgroundColor: '#111827', // bg-gray-900
+            background: { type: 'solid', color: '#000000' },
             textColor: 'rgba(255, 255, 255, 0.9)',
         },
         grid: {
-            vertLines: { color: '#374151' }, // bg-gray-700
-            horzLines: { color: '#374151' },
+            vertLines: { color: 'rgba(197, 203, 206, 0.5)' },
+            horzLines: { color: 'rgba(197, 203, 206, 0.5)' },
         },
-        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-        timeScale: { timeVisible: true, secondsVisible: false },
+        crosshair: {
+            mode: LightweightCharts.CrosshairMode.Normal,
+        },
+        rightPriceScale: {
+            borderColor: 'rgba(197, 203, 206, 0.8)',
+        },
+        timeScale: {
+            borderColor: 'rgba(197, 203, 206, 0.8)',
+            timeVisible: true,
+            secondsVisible: false,
+        },
     });
 
     candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
@@ -133,9 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setupWebSocket();
     });
 
-    window.addEventListener('resize', () => {
-        chart.resize(chartContainer.clientWidth, chartContainer.clientHeight);
-    });
+    // O listener de resize manual foi removido. A biblioteca gerencia isso
+    // automaticamente com a opção padrão `autoSize: true`.
 
     // --- Initial Load ---
     setDefaultDates();
