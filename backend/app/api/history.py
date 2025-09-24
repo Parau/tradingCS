@@ -18,6 +18,12 @@ def get_timeframe_map():
     """
     Retorna o mapeamento de timeframes. Inicializa na primeira chamada
     para garantir que a conexão com o MT5 já exista.
+    
+    Returns:
+        dict: Mapeamento de strings para constantes MT5
+        
+    Raises:
+        HTTPException: Se o MT5 não estiver disponível
     """
     global _TIMEFRAME_MAP
     if _TIMEFRAME_MAP is None:
@@ -31,7 +37,24 @@ def get_timeframe_map():
     return _TIMEFRAME_MAP
 
 def parse_and_localize_time(time_str: str) -> datetime:
-    """Converte uma string ISO 8601 para um objeto datetime ciente do fuso horário (UTC)."""
+    """
+    Converte uma string ISO 8601 para um objeto datetime timezone-aware em UTC.
+    
+    Para sistemas de trading, é crítico normalizar todos os horários para UTC
+    internamente, mesmo que o usuário trabalhe em horário local do mercado.
+    
+    Args:
+        time_str (str): String no formato ISO-8601
+        
+    Returns:
+        datetime: Objeto datetime em UTC, timezone-aware
+        
+    Raises:
+        HTTPException: Se o formato da string for inválido
+        
+    Note:
+        Se time_str não tiver timezone, assume America/Sao_Paulo (horário B3)
+    """
     try:
         dt = datetime.fromisoformat(time_str)
         if dt.tzinfo is None:
@@ -44,12 +67,31 @@ def parse_and_localize_time(time_str: str) -> datetime:
 
 @lru_cache(maxsize=128)
 def fetch_rates_from_mt5(symbol: str, timeframe_mt5: int, start_utc: datetime, end_utc: datetime):
-    """Função 'cacheável' que busca dados do MT5."""
+    """
+    Função cacheável que busca dados históricos do MT5.
+    
+    Args:
+        symbol (str): Símbolo do ativo (ex: 'WDOV25')
+        timeframe_mt5 (int): Constante de timeframe do MT5
+        start_utc (datetime): Data/hora início em UTC
+        end_utc (datetime): Data/hora fim em UTC
+        
+    Returns:
+        list: Lista de dicionários com dados OHLC compatíveis com Lightweight Charts
+        
+    Raises:
+        HTTPException: Se o MT5 não estiver conectado
+        
+    Note:
+        O campo 'time' retornado é Unix timestamp (epoch seconds) em UTC,
+        conforme esperado pelos sistemas de charting financeiro.
+    """
     print(f"Buscando dados no MT5 para {symbol} de {start_utc} a {end_utc}...")
     mt5 = mt5_connector.get_mt5_instance()
     if not mt5_connector.is_connected():
         raise HTTPException(status_code=503, detail="Serviço MT5 indisponível.")
 
+    # MT5 espera datetimes em UTC
     rates = mt5.copy_rates_range(symbol, timeframe_mt5, start_utc, end_utc)
 
     if rates is None or len(rates) == 0:
@@ -75,7 +117,24 @@ async def get_history(
     end: str = Query(..., description="Data de fim no formato ISO-8601")
 ):
     """
-    Fornece dados históricos de velas (candlesticks) para um ativo específico.
+    Fornece dados históricos de candlesticks para um ativo.
+    
+    Este endpoint segue as práticas padrão de sistemas de trading:
+    - Aceita horários em ISO-8601 (com ou sem timezone)
+    - Normaliza internamente para UTC
+    - Retorna timestamps Unix (epoch seconds) compatíveis com charting libs
+    
+    Args:
+        symbol (str): Símbolo do ativo
+        timeframe (str): Período (M1, M5, M15, M30, H1)
+        start (str): Data/hora início
+        end (str): Data/hora fim
+        
+    Returns:
+        list: Array de objetos OHLC com timestamps Unix
+        
+    Example:
+        GET /api/history/WDOV25?timeframe=M5&start=2025-09-20T09:00:00&end=2025-09-20T18:00:00
     """
     timeframe_map = get_timeframe_map()
     if timeframe not in timeframe_map:
