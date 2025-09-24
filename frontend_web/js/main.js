@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (message.type === 'candle') {
                 candlestickSeries.update(message.data);
             } else if (message.type === 'markers') {
-                console.log('Marker data received:', message.data);
+                console.log('Marker data received:', message.data.length, 'markers');
 
                 // 1. Remove os marcadores antigos
                 activeMarkers.forEach(marker => candlestickSeries.detachPrimitive(marker));
@@ -134,20 +134,40 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 2. Cria e anexa os novos marcadores
                 message.data.forEach(markerData => {
+                    const startTime = new Date(`${markerData.Data}T${markerData.Hora}:00`).getTime() / 1000;
+                    let endTime = new Date(`${markerData.Data}T18:00:00`).getTime() / 1000;
+                    
+                    // Verificar se o endTime está dentro do range visível
+                    const timeScale = chart.timeScale();
+                    const visibleRange = timeScale.getVisibleRange();
+                    
+                    if (visibleRange && endTime > visibleRange.to) {
+                        // Se 18:00 está fora do range, usar o final do range visível
+                        endTime = visibleRange.to;
+                    }
+                    
                     const p1 = {
-                        time: new Date(`${markerData.Data}T${markerData.Hora}:00`).getTime() / 1000,
+                        time: startTime,
                         price: markerData.Preco + 1.0
                     };
                     const p2 = {
-                        time: new Date(`${markerData.Data}T18:00:00`).getTime() / 1000,
+                        time: endTime,
                         price: markerData.Preco - 1.0
                     };
                     const color = markerData.Tipo === 'POC_VENDA' ? 'rgba(239, 68, 68, 0.7)' : 'rgba(16, 185, 129, 0.7)';
 
-                    const newRectangle = new RectanglePrimitive(chart, candlestickSeries, p1, p2, color);
-                    candlestickSeries.attachPrimitive(newRectangle);
-                    activeMarkers.push(newRectangle);
+                    try {
+                        const newRectangle = new RectanglePrimitive(chart, candlestickSeries, p1, p2, color);
+                        candlestickSeries.attachPrimitive(newRectangle);
+                        newRectangle.updateAllViews();
+                        activeMarkers.push(newRectangle);
+                    } catch (error) {
+                        console.error('Error creating rectangle:', error);
+                    }
                 });
+                
+                // Forçar redesenho do gráfico
+                chart.timeScale().fitContent();
             }
         };
 
@@ -178,25 +198,5 @@ document.addEventListener('DOMContentLoaded', () => {
     setDefaultDates();
     loadChartData();
     setupWebSocket();
-
-    // DEBUGGING: Forçar o desenho de um retângulo para testar o plugin (a pedido do usuário).
-    function drawDebugRectangle() {
-        console.log("DEBUG: Forçando o desenho de um retângulo de teste.");
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = today.getMonth();
-        const day = today.getDate();
-
-        const time1 = new Date(year, month, day, 10, 0).getTime() / 1000;
-        const time2 = new Date(year, month, day, 12, 0).getTime() / 1000;
-
-        const p1 = { time: time1, price: 5360 };
-        const p2 = { time: time2, price: 5340 };
-        const color = 'rgba(0, 255, 0, 0.7)'; // Verde brilhante para fácil visualização
-
-        const debugRectangle = new RectanglePrimitive(chart, candlestickSeries, p1, p2, color);
-        candlestickSeries.attachPrimitive(debugRectangle);
-        console.log("DEBUG: Primitivo de retângulo de teste anexado à série.");
-    }
-    setTimeout(drawDebugRectangle, 3000); // Atraso para garantir que o gráfico foi carregado
 });
+
