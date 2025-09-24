@@ -113,7 +113,7 @@ class MainDashboard(QMainWindow):
                 output = byte_data.decode('utf-8').strip()
             except UnicodeDecodeError:
                 output = byte_data.decode(sys.stdout.encoding, errors='replace').strip()
-            print(f"[FastAPI Server]: {output}") if output else None
+            #print(f"[FastAPI Server]: {output}") if output else None
 
     def check_status(self):
         # Verifica se o processo ainda está rodando
