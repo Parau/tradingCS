@@ -60,6 +60,8 @@ Para iniciar o sistema, execute o painel de controle principal:
 ```bash
 python frontend_pyqt/main_dashboard.py
 ```
+Pra acessar o frontend web
+http://127.0.0.1:8000/
 
 ### 5. Utilização
 
