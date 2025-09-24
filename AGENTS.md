@@ -13,6 +13,9 @@ Este projeto é um trading system que usa dados históricos e em tempo real para
 - **Fonte de Dados Única:** A API FastAPI é o **único** processo que se comunica diretamente com o terminal **MetaTrader 5 (MT5)**.
 - **Arquitetura de Clientes:** Todos os outros componentes (GUI PyQt, scripts de backtesting, cliente web) atuam como **clientes** da API FastAPI.
 - **Processos Separados:** A GUI PyQt, o servidor FastAPI e os processos de backtesting devem rodar de forma independente.
+- **OpenAPI:** Usa o padrão OpenAPI no código fonte para documentar todas API.
+- **reStructuredText:** Usar o padrão reST estilo Google para documentar todos os códigos de programação python
+- **JSDoc e TSDoc:** Usar o padrão JSDoc para documentar todos os códigos de programação Javascipt e páginas web e TSDoc para códigos de programação Typescript.
 
 ## Princípios para o Fluxo de Dados
 
