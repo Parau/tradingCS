@@ -14,7 +14,7 @@ O sistema é composto por três componentes principais que rodam de forma indepe
 
 **Princípio Fundamental:** O backend FastAPI é o cérebro e a única fonte de dados do MT5. Todos os outros componentes são clientes de sua API.
 
-## Stack de Tecnologia
+### Stack de Tecnologia
 - **Servidor Backend:** use FastAPI. Toda a lógica de I/O é assíncrona (`async/await`).
 - **Painel de Controle (frontend_pyqt):** Use **PyQt** para a interface gráfica de desktop.
 - **Comunicação Cliente-Servidor:** Use **HTTP** para requisições de ação/dados históricos e **WebSockets** para dados em tempo real.
@@ -26,6 +26,16 @@ O sistema é composto por três componentes principais que rodam de forma indepe
 - A API deve consultar os dados históricos diretamente do MT5 sob demanda.
 - Implemente um **cache em memória** nos endpoints de dados históricos para minimizar chamadas repetidas ao MT5.
 
+### Dados em tempo real
+- Usando websockets
+
+## Documentação
+- Usao o padrão OpenAPI para as api do sistema.
+- Usar o padrão JSDoc para código javascript e TSDoc para typescript.
+- reStructuredText (reST) para código python usando o estilo Google.
+- Documentação padrão Markdown.
+- Gherkin para para explicar e registrar o comportamento esperado do sistema e as regras de negócio (arquivo com extenção `.feature`).
+ 
 ## Fluxo de Execução e Setup
 
 -   **Ponto de Entrada:** A aplicação é iniciada executando o dashboard principal:
