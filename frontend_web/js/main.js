@@ -129,43 +129,110 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Marker data received:', message.data.length, 'markers');
 
                 // 1. Remove os marcadores antigos
-                activeMarkers.forEach(marker => candlestickSeries.detachPrimitive(marker));
-                activeMarkers = [];
-
-                // 2. Cria e anexa os novos marcadores
-                message.data.forEach(markerData => {
-                    const startTime = new Date(`${markerData.Data}T${markerData.Hora}:00`).getTime() / 1000;
-                    let endTime = new Date(`${markerData.Data}T18:00:00`).getTime() / 1000;
-                    
-                    // Verificar se o endTime está dentro do range visível
-                    const timeScale = chart.timeScale();
-                    const visibleRange = timeScale.getVisibleRange();
-                    
-                    if (visibleRange && endTime > visibleRange.to) {
-                        // Se 18:00 está fora do range, usar o final do range visível
-                        endTime = visibleRange.to;
-                    }
-                    
-                    const p1 = {
-                        time: startTime,
-                        price: markerData.Preco + 1.0
-                    };
-                    const p2 = {
-                        time: endTime,
-                        price: markerData.Preco - 1.0
-                    };
-                    const color = markerData.Tipo === 'POC_VENDA' ? 'rgba(239, 68, 68, 0.7)' : 'rgba(16, 185, 129, 0.7)';
-
+                console.log('Removing', activeMarkers.length, 'existing markers');
+                activeMarkers.forEach((marker, index) => {
                     try {
-                        const newRectangle = new RectanglePrimitive(chart, candlestickSeries, p1, p2, color);
-                        candlestickSeries.attachPrimitive(newRectangle);
-                        newRectangle.updateAllViews();
-                        activeMarkers.push(newRectangle);
+                        candlestickSeries.detachPrimitive(marker);
+                        console.log(`Marker ${index} removed successfully`);
                     } catch (error) {
-                        console.error('Error creating rectangle:', error);
+                        console.error(`Error removing marker ${index}:`, error);
                     }
                 });
+                activeMarkers.length = 0;
+
+                // 2. Ordena os marcadores por data e hora
+                const sortedMarkers = [...message.data].sort((a, b) => {
+                    const dateTimeA = new Date(`${a.Data}T${a.Hora}:00`);
+                    const dateTimeB = new Date(`${b.Data}T${b.Hora}:00`);
+                    return dateTimeA - dateTimeB;
+                });
+                console.log('Sorted markers:', sortedMarkers.map(m => `${m.Tipo} ${m.Data} ${m.Hora} ${m.Preco}`));
+
+                // 3. Agrupa por data para garantir que POCs só são válidos no mesmo dia
+                const markersByDate = {};
+                sortedMarkers.forEach(marker => {
+                    if (!markersByDate[marker.Data]) {
+                        markersByDate[marker.Data] = [];
+                    }
+                    markersByDate[marker.Data].push(marker);
+                });
+                console.log('Markers grouped by date:', Object.keys(markersByDate), 'days');
+
+                // 4. Processa cada grupo de data
+                Object.keys(markersByDate).forEach(date => {
+                    const dayMarkers = markersByDate[date];
+                    console.log(`Processing ${dayMarkers.length} markers for date ${date}`);
+                    
+                    dayMarkers.forEach((markerData, index) => {
+                        const startTime = new Date(`${markerData.Data}T${markerData.Hora}:00`).getTime() / 1000;
+                        let endTime;
+
+                        // Encontra o próximo marcador do mesmo tipo no mesmo dia
+                        const nextMarkerIndex = dayMarkers.findIndex((m, i) => 
+                            i > index && m.Tipo === markerData.Tipo
+                        );
+                        console.log(`Marker ${index} (${markerData.Tipo}): looking for next marker of same type, found at index:`, nextMarkerIndex);
+
+                        if (nextMarkerIndex !== -1) {
+                            // Usa o horário do próximo marcador do mesmo tipo
+                            const nextMarker = dayMarkers[nextMarkerIndex];
+                            endTime = new Date(`${nextMarker.Data}T${nextMarker.Hora}:00`).getTime() / 1000;
+                            console.log(`Using next marker time: ${nextMarker.Hora}`);
+                        } else {
+                            // Não há próximo marcador do mesmo tipo, usa o final do range ou último candle
+                            const timeScale = chart.timeScale();
+                            const visibleRange = timeScale.getVisibleRange();
+                            
+                            if (visibleRange) {
+                                endTime = visibleRange.to;
+                                console.log(`Using visible range end:`, new Date(endTime * 1000));
+                            } else {
+                                // Fallback para 18:00 do mesmo dia
+                                endTime = new Date(`${markerData.Data}T18:00:00`).getTime() / 1000;
+                                console.log(`Using 18:00 fallback`);
+                            }
+                        }
+
+                        // Garantir que endTime seja sempre maior que startTime
+                        if (endTime <= startTime) {
+                            endTime = startTime + 3600; // Adiciona 1 hora como mínimo
+                            console.log(`Adjusted endTime to avoid invalid range`);
+                        }
+
+                        const p1 = {
+                            time: startTime,
+                            price: markerData.Preco + 0.5
+                        };
+                        const p2 = {
+                            time: endTime,
+                            price: markerData.Preco - 0.5
+                        };
+                        const color = markerData.Tipo === 'POC_VENDA' ? 'rgba(239, 68, 68, 0.7)' : 'rgba(16, 185, 129, 0.7)';
+
+                        console.log(`Creating rectangle ${index}:`, {
+                            type: markerData.Tipo,
+                            p1: {...p1, time: new Date(p1.time * 1000).toISOString()},
+                            p2: {...p2, time: new Date(p2.time * 1000).toISOString()},
+                            color
+                        });
+
+                        try {
+                            const newRectangle = new RectanglePrimitive(chart, candlestickSeries, p1, p2, color);
+                            candlestickSeries.attachPrimitive(newRectangle);
+                            newRectangle.updateAllViews();
+                            activeMarkers.push(newRectangle);
+                            console.log(`Rectangle ${index} created and attached successfully. Total active markers: ${activeMarkers.length}`);
+                        } catch (error) {
+                            console.error(`Error creating rectangle ${index}:`, error, {
+                                startTime: new Date(startTime * 1000),
+                                endTime: new Date(endTime * 1000),
+                                p1, p2
+                            });
+                        }
+                    });
+                });
                 
+                console.log(`Final count - Total active markers: ${activeMarkers.length}`);
                 // Forçar redesenho do gráfico
                 chart.timeScale().fitContent();
             }
@@ -199,4 +266,5 @@ document.addEventListener('DOMContentLoaded', () => {
     loadChartData();
     setupWebSocket();
 });
+
 
