@@ -1,3 +1,5 @@
+// A página https://tradingview.github.io/lightweight-charts/plugin-examples/ contém vários exemplos de plugins.
+
 // #region Pane Renderer
 class RectanglePaneRenderer {
     constructor(p1, p2, fillColor) {
