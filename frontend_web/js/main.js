@@ -40,13 +40,14 @@ document.addEventListener('DOMContentLoaded', () => {
             tickMarkFormatter: time => {
                 const date = new Date(time * 1000);
                 return date.toLocaleTimeString('pt-BR', {
-                    timeZone: 'America/Sao_Paulo',
+                    timeZone: 'UTC',
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: false,
                 });
             },
         },
+        
     });
 
     candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
@@ -95,6 +96,24 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const data = await response.json();
             console.log(`Received ${data.length} data points.`);
+
+            //Manter este código comentado porque é usado para debugar os dados recebidos do servidor
+            /*data.forEach((point, index) => {
+                const date = new Date(point.time * 1000);
+                const formattedTime = date.toLocaleString('pt-BR', {
+                    timeZone: 'UTC',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: false,
+                });
+                console.log(`Point ${index}: time=${formattedTime}, open=${point.open}, high=${point.high}, low=${point.low}, close=${point.close}`);
+            });*/
+
+
             candlestickSeries.setData(data);
             chart.timeScale().fitContent();
         } catch (error) {
@@ -164,7 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.log(`Processing ${dayMarkers.length} markers for date ${date}`);
                     
                     dayMarkers.forEach((markerData, index) => {
-                        const startTime = new Date(`${markerData.Data}T${markerData.Hora}:00`).getTime() / 1000;
+                        const startTime = new Date(`${markerData.Data}T${markerData.Hora}:00Z`).getTime() / 1000;
                         let endTime;
 
                         // Encontra o próximo marcador do mesmo tipo no mesmo dia
@@ -176,21 +195,32 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (nextMarkerIndex !== -1) {
                             // Usa o horário do próximo marcador do mesmo tipo
                             const nextMarker = dayMarkers[nextMarkerIndex];
-                            endTime = new Date(`${nextMarker.Data}T${nextMarker.Hora}:00`).getTime() / 1000;
+                            endTime = new Date(`${nextMarker.Data}T${nextMarker.Hora}:00Z`).getTime() / 1000;
                             console.log(`Using next marker time: ${nextMarker.Hora}`);
                         } else {
-                            // Não há próximo marcador do mesmo tipo, usa o final do range ou último candle
+                            // Não há próximo marcador do mesmo tipo?
+                            // Usa o final do range se ele estiver no mesmo dia ou 18:00 se o final do range for de outra data.
                             const timeScale = chart.timeScale();
                             const visibleRange = timeScale.getVisibleRange();
                             
-                            if (visibleRange) {
+                        if (visibleRange) {
+                            // Verifica se o final do visibleRange está no mesmo dia que markerData.Data
+                            const endDate = new Date(visibleRange.to * 1000);
+                            const endDateString = endDate.toISOString().slice(0, 10); // Formato YYYY-MM-DD
+                            
+                            if (endDateString === markerData.Data) {
                                 endTime = visibleRange.to;
-                                console.log(`Using visible range end:`, new Date(endTime * 1000));
+                                console.log(`Using visible range end (same day):`, new Date(endTime * 1000));
                             } else {
-                                // Fallback para 18:00 do mesmo dia
-                                endTime = new Date(`${markerData.Data}T18:00:00`).getTime() / 1000;
-                                console.log(`Using 18:00 fallback`);
+                                // Fallback para 18:00 do mesmo dia (eu tenho um problema na renderização de que o horário do último candle muda dependendo do tempo do gráfio. como ainda não busquei solução para isso eu estou deixando até as 18:00 que atende a maioria dos timeframes selecionado)
+                                endTime = new Date(`${markerData.Data}T18:00:00Z`).getTime() / 1000;
+                                console.log(`Using 18:00 fallback (different day)`);
                             }
+                        } else {
+                            // Fallback para 18:00 do mesmo dia (eu tenho um problema na renderização de que o horário do último candle muda dependendo do tempo do gráfio. como ainda não busquei solução para isso eu estou deixando até as 18:00 que atende a maioria dos timeframes selecionado)
+                            endTime = new Date(`${markerData.Data}T18:00:00Z`).getTime() / 1000;
+                            console.log(`Using 18:00 fallback (no visible range)`);
+                        }
                         }
 
                         // Garantir que endTime seja sempre maior que startTime
@@ -233,8 +263,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 
                 console.log(`Final count - Total active markers: ${activeMarkers.length}`);
-                // Forçar redesenho do gráfico
-                chart.timeScale().fitContent();
             }
         };
 
@@ -266,5 +294,4 @@ document.addEventListener('DOMContentLoaded', () => {
     loadChartData();
     setupWebSocket();
 });
-
 
