@@ -29,12 +29,42 @@ O sistema é composto por três componentes principais que rodam de forma indepe
 ### Dados em tempo real
 - Usando websockets
 
-## Documentação
+## Documentação (uso de comentários dentro do código de programação)
+### Formato
 - Usao o padrão OpenAPI para as api do sistema.
 - Usar o padrão JSDoc para código javascript e TSDoc para typescript.
 - reStructuredText (reST) para código python usando o estilo Google.
 - Documentação padrão Markdown.
 - Gherkin para para explicar e registrar o comportamento esperado do sistema e as regras de negócio (arquivo com extenção `.feature`).
+ótimo ponto — isso acontece mesmo: muitos agentes “limpam” comentários durante refatorações. Abaixo vai um bloco pronto para colar no seu **AGENTS.md** (em PT-BR), com políticas claras para **preservar, atualizar e enriquecer comentários**, sem apagá-los por engano.
+### Comentários no código (política para agentes)
+**ATENÇÃO (resumo):** Comentários são parte do código e **não devem ser removidos** durante geração ou refatoração. Eles registram a lógica, decisões históricas, riscos, links de referência e alertas operacionais. Mantenha-os **atuais**, **fiéis** e **presentes**.
+#### Princípios
+1. **Preservar por padrão:** Nunca apague comentários existentes sem justificativa explícita no PR.
+2. **Atualizar junto com o código:** Se alterar uma função/trecho, revise e atualize os comentários adjacentes para refletir o comportamento atual.
+3. **Respeitar avisos e alertas:** Comentários que indiquem riscos, requisitos legais, segurança, performance, débitos técnicos ou “gotchas” **são obrigatórios** e devem permanecer.
+4. **Fonte de decisões:** Comentários explicam *por que* algo é assim (decisões, trade-offs, links). Não remova essa história.
+5. **Sinalizar divergências:** Se um comentário estiver desatualizado, **não o elimine** — corrija-o e adicione nota do que mudou.
+#### O que fazer (DO)
+* **Antes de editar:** ler comentários do bloco, arquivo e módulo para entender contexto e decisões anteriores.
+* **Ao refatorar:** migrar comentários relevantes para o novo local (mesma função, wrapper, utilidade, etc.).
+* **Ao atualizar:** manter links úteis (RFCs, issues, artigos); se algum link quebrar, substitua por um equivalente ou inclua o título/DOI.
+* **Docstrings e cabeçalhos:** garantir que docstrings descrevam argumentos, retorno, efeitos colaterais e invariantes.
+* **Marcação de decisões:** quando fizer uma mudança que invalida uma decisão antiga, acrescente uma linha “Atualizado em: AAAA-MM-DD — motivo”.
+#### O que evitar (DON’T)
+* Remover comentários por “limpeza” automática.
+* Resumir comentários técnicos a ponto de perder informação crítica.
+* Apagar TODOs/FIXMEs/REFERÊNCIAS sem resolver o item ou registrar o motivo no PR.
+#### Checklist para PRs gerados pelo agente
+* [ ] Comentários importantes foram **preservados** e/ou **migrados** para o novo local.
+* [ ] Comentários foram **atualizados** para refletir o comportamento atual.
+* [ ] Links e referências foram verificados (substituir se quebrados).
+* [ ] Decisões alteradas estão anotadas com **“Atualizado em: AAAA-MM-DD — motivo”**.
+* [ ] Nenhum TODO/FIXME foi apagado sem resolução ou justificativa clara no PR.
+#### Remoção excepcional
+Só remova um comentário se for **inequivocamente obsoleto** ou enganoso. Nesse caso:
+* Inclua no diff uma nota: *“Removido comentário obsoleto: <resumo> (por quê)”*.
+* Se a informação ainda tiver valor histórico, mova-a para o início do código e mencione isso no local em que originalmente o comentário estava presente.
  
 ## Fluxo de Execução e Setup
 
