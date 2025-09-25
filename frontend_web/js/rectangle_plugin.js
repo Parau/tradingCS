@@ -1,4 +1,6 @@
 // A página https://tradingview.github.io/lightweight-charts/plugin-examples/ contém vários exemplos de plugins.
+// Este plugin desenha um retângulo preenchido com transparência entre dois pontos (tempo, preço) em uma série de preços.
+// O plugin foi desenvolvido usando como base o código https://github.com/tradingview/lightweight-charts/blob/master/plugin-examples/src/plugins/rectangle-drawing-tool/rectangle-drawing-tool.ts
 
 // #region Pane Renderer
 class RectanglePaneRenderer {
