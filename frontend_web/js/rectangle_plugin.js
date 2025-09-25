@@ -30,14 +30,40 @@ class RectanglePaneRenderer {
 
             if (width <= 0 || height <= 0) return;
 
-            // Desenhar retângulo pontilhado
+            // Desenhar retângulo preenchido com transparência
+            // Usar save/restore para isolar state (globalAlpha, lineDash, etc.)
+            ctx.save();
+            ctx.fillStyle = this._fillColor;
+            ctx.globalAlpha = 0.2;
+            ctx.beginPath();
+            ctx.rect(x, y, width, height);
+            ctx.fill();
+            ctx.restore();
+            
+
+            // desenhar borda opaca com a mesma cor
+            /*ctx.save();
             ctx.strokeStyle = this._fillColor;
-            ctx.lineWidth = 2;
-            ctx.setLineDash([5, 5]);
+            ctx.lineWidth = 1;
+            ctx.setLineDash([]); // sem pontilhado
             ctx.beginPath();
             ctx.rect(x, y, width, height);
             ctx.stroke();
-            ctx.setLineDash([]); // Reset line dash
+            ctx.restore();*/
+
+            // desenhar linha horizontal pontilhada bem no meio do retângulo
+            ctx.save();
+            ctx.globalAlpha = 1;
+            ctx.strokeStyle = this._fillColor;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            const midY = Math.round(y + height / 2);
+            ctx.beginPath();
+            ctx.moveTo(x, midY);
+            ctx.lineTo(x + width, midY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
         });
     }
 }

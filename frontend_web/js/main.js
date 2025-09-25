@@ -50,12 +50,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     candlestickSeries = chart.addSeries(LightweightCharts.CandlestickSeries, {
-        upColor: '#10B981', // green-500
-        downColor: '#EF4444', // red-500
-        borderDownColor: '#EF4444',
-        borderUpColor: '#10B981',
-        wickDownColor: '#EF4444',
-        wickUpColor: '#10B981',
+        upColor: '#ffffffff', 
+        downColor: '#000000ff', // red-500
+        borderDownColor: '#a9a8a8ff',
+        borderUpColor: '#ffffffff',
+        wickDownColor: '#a9a8a8ff',
+        wickUpColor: '#ffffffff',
     });
 
     // --- Plugin Initialization ---
@@ -207,7 +207,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             time: endTime,
                             price: markerData.Preco - 0.5
                         };
-                        const color = markerData.Tipo === 'POC_VENDA' ? 'rgba(239, 68, 68, 0.7)' : 'rgba(16, 185, 129, 0.7)';
+                        const color = markerData.Tipo === 'POC_VENDA' ? 'rgba(255, 0, 0, 1)' : 'rgba(16, 253, 8, 1)';
 
                         console.log(`Creating rectangle ${index}:`, {
                             type: markerData.Tipo,
