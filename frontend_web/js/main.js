@@ -75,8 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
         startDateInput.value = startString;
         endDateInput.value = endString;
 
-            console.log('setDefaultDates -> startDateInput.value:', startDateInput.value, 'endDateInput.value:', endDateInput.value);
-    console.log('navigator.language:', navigator.language);
     }
 
     // --- Data Fetching and WebSocket ---
