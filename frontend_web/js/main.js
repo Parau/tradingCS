@@ -65,12 +65,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Date Initialization ---
     function setDefaultDates() {
         const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0, 0); // 09:00
-        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 18, 0, 0); // 18:00
+        // Formatar manualmente para horário local (America/Sao_Paulo), assumindo 09:00 e 18:00 locais
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const startString = `${year}-${month}-${day}T09:00`;
+        const endString = `${year}-${month}-${day}T18:30`;
 
-        // Formato para input datetime-local: YYYY-MM-DDTHH:MM
-        startDateInput.value = startOfDay.toISOString().slice(0, 16);
-        endDateInput.value = endOfDay.toISOString().slice(0, 16);
+        startDateInput.value = startString;
+        endDateInput.value = endString;
+
+            console.log('setDefaultDates -> startDateInput.value:', startDateInput.value, 'endDateInput.value:', endDateInput.value);
+    console.log('navigator.language:', navigator.language);
     }
 
     // --- Data Fetching and WebSocket ---
@@ -85,7 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Envia a string "ingênua", o backend vai interpretar como America/Sao_Paulo
-        const url = `${API_BASE_URL}/api/history/${SYMBOL}?timeframe=${timeframe}&start=${start}:00&end=${end}:00`;
+        const url = `${API_BASE_URL}/api/history/${SYMBOL}?timeframe=${timeframe}&start=${start}:00Z&end=${end}:00Z`;
 
         try {
             console.log(`Fetching: ${url}`);
