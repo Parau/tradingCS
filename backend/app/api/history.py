@@ -65,7 +65,8 @@ def parse_and_localize_time(time_str: str) -> datetime:
     except (ValueError, TypeError):
         raise HTTPException(status_code=400, detail=f"Formato de data/hora inválido: '{time_str}'. Use ISO-8601.")
 
-@lru_cache(maxsize=128)
+# @lru_cache(maxsize=128) 
+# desabilitei a cache porque quando atualizo o gráfico no cliente o fetch_rates_from_mt5 tem os mesmos parâmetros mas os dados podem ter mudado porque o pedido feito já tinha um range maior (está sendo pedido até as 18h).
 def fetch_rates_from_mt5(symbol: str, timeframe_mt5: int, start_utc: datetime, end_utc: datetime):
     """
     Função cacheável que busca dados históricos do MT5.
@@ -92,6 +93,7 @@ def fetch_rates_from_mt5(symbol: str, timeframe_mt5: int, start_utc: datetime, e
         raise HTTPException(status_code=503, detail="Serviço MT5 indisponível.")
 
     # MT5 espera datetimes em UTC
+    print(symbol, timeframe_mt5, start_utc, end_utc)
     rates = mt5.copy_rates_range(symbol, timeframe_mt5, start_utc, end_utc)
 
     if rates is None or len(rates) == 0:
