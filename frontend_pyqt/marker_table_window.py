@@ -72,7 +72,7 @@ class MarkerTableWindow(QWidget):
 
         # Adiciona um QComboBox na coluna "Tipo"
         combo_box = QComboBox()
-        combo_box.addItems(["POC_VENDA", "POC_COMPRA"])
+        combo_box.addItems(["POC_VENDA", "POC_COMPRA", "AJUSTE"])
         self.table.setCellWidget(row_position, 3, combo_box)
 
     def remove_row(self):
@@ -96,7 +96,7 @@ class MarkerTableWindow(QWidget):
                         self.table.setItem(row, 2, QTableWidgetItem(row_data[2]))
 
                         combo_box = QComboBox()
-                        combo_box.addItems(["POC_VENDA", "POC_COMPRA"])
+                        combo_box.addItems(["POC_VENDA", "POC_COMPRA", "AJUSTE"])
                         combo_box.setCurrentText(row_data[3])
                         self.table.setCellWidget(row, 3, combo_box)
             except Exception as e:

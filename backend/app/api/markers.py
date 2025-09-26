@@ -16,8 +16,9 @@ class MarkerItem(BaseModel):
     """Define a estrutura de um único item de marcação."""
     Data: str = Field(..., description="Data da marcação no formato YYYY-MM-DD")
     Hora: str = Field(..., description="Hora da marcação no formato HH:MM")
-    preco: float = Field(..., alias="Preco", description="Preço da marcação")
-    Tipo: Literal['POC_VENDA', 'POC_COMPRA'] = Field(..., description="Tipo da marcação")
+    Preco: float = Field(...,  description="Preço da marcação")
+    Tipo: Literal['POC_VENDA', 'POC_COMPRA', 'AJUSTE'] = Field(..., description="Tipo da marcação")
+
 
 class MarkerData(BaseModel):
     """Define a estrutura do corpo da requisição para o endpoint de marcações."""

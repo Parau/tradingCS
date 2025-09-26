@@ -116,9 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 console.log(`Point ${index}: time=${formattedTime}, open=${point.open}, high=${point.high}, low=${point.low}, close=${point.close}`);
             });*/
-
-
             candlestickSeries.setData(data);
+
             chart.timeScale().fitContent();
         } catch (error) {
             console.error(error);
@@ -171,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 console.log('Sorted markers:', sortedMarkers.map(m => `${m.Tipo} ${m.Data} ${m.Hora} ${m.Preco}`));
 
-                // 3. Agrupa por data para garantir que POCs só são válidos no mesmo dia
+                // 3. Agrupa por data porque os marcadores só valem para o mesmo dia
                 const markersByDate = {};
                 sortedMarkers.forEach(marker => {
                     if (!markersByDate[marker.Data]) {
@@ -181,87 +180,108 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 console.log('Markers grouped by date:', Object.keys(markersByDate), 'days');
 
-                // 4. Processa cada grupo de data
+                // 4. Processa cada marcador dentro do grupo de data
                 Object.keys(markersByDate).forEach(date => {
                     const dayMarkers = markersByDate[date];
                     console.log(`Processing ${dayMarkers.length} markers for date ${date}`);
                     
                     dayMarkers.forEach((markerData, index) => {
-                        const startTime = new Date(`${markerData.Data}T${markerData.Hora}:00Z`).getTime() / 1000;
-                        let endTime;
+                        if (markerData.Tipo === 'POC_VENDA' || markerData.Tipo === 'POC_COMPRA') {
+                            const startTime = new Date(`${markerData.Data}T${markerData.Hora}:00Z`).getTime() / 1000;
+                            let endTime;
 
-                        // Encontra o próximo marcador do mesmo tipo no mesmo dia
-                        const nextMarkerIndex = dayMarkers.findIndex((m, i) => 
-                            i > index && m.Tipo === markerData.Tipo
-                        );
-                        console.log(`Marker ${index} (${markerData.Tipo}): looking for next marker of same type, found at index:`, nextMarkerIndex);
+                            // Encontra o próximo marcador do mesmo tipo no mesmo dia
+                            const nextMarkerIndex = dayMarkers.findIndex((m, i) => 
+                                i > index && m.Tipo === markerData.Tipo
+                            );
+                            console.log(`Marker ${index} (${markerData.Tipo}): looking for next marker of same type, found at index:`, nextMarkerIndex);
 
-                        if (nextMarkerIndex !== -1) {
-                            // Usa o horário do próximo marcador do mesmo tipo
-                            const nextMarker = dayMarkers[nextMarkerIndex];
-                            endTime = new Date(`${nextMarker.Data}T${nextMarker.Hora}:00Z`).getTime() / 1000;
-                            console.log(`Using next marker time: ${nextMarker.Hora}`);
-                        } else {
-                            // Não há próximo marcador do mesmo tipo?
-                            // Usa o final do range se ele estiver no mesmo dia ou 18:00 se o final do range for de outra data.
-                            const timeScale = chart.timeScale();
-                            const visibleRange = timeScale.getVisibleRange();
-                            
-                        if (visibleRange) {
-                            // Verifica se o final do visibleRange está no mesmo dia que markerData.Data
-                            const endDate = new Date(visibleRange.to * 1000);
-                            const endDateString = endDate.toISOString().slice(0, 10); // Formato YYYY-MM-DD
-                            
-                            if (endDateString === markerData.Data) {
-                                endTime = visibleRange.to;
-                                console.log(`Using visible range end (same day):`, new Date(endTime * 1000));
+                            if (nextMarkerIndex !== -1) {
+                                // Usa o horário do próximo marcador do mesmo tipo
+                                const nextMarker = dayMarkers[nextMarkerIndex];
+                                endTime = new Date(`${nextMarker.Data}T${nextMarker.Hora}:00Z`).getTime() / 1000;
+                                console.log(`Using next marker time: ${nextMarker.Hora}`);
+                            } else {
+                                // Não há próximo marcador do mesmo tipo?
+                                // Usa o final do range se ele estiver no mesmo dia ou 18:00 se o final do range for de outra data.
+                                const timeScale = chart.timeScale();
+                                const visibleRange = timeScale.getVisibleRange();
+                                
+                            if (visibleRange) {
+                                // Verifica se o final do visibleRange está no mesmo dia que markerData.Data
+                                const endDate = new Date(visibleRange.to * 1000);
+                                const endDateString = endDate.toISOString().slice(0, 10); // Formato YYYY-MM-DD
+                                
+                                if (endDateString === markerData.Data) {
+                                    endTime = visibleRange.to;
+                                    console.log(`Using visible range end (same day):`, new Date(endTime * 1000));
+                                } else {
+                                    // Fallback para 18:00 do mesmo dia (eu tenho um problema na renderização de que o horário do último candle muda dependendo do tempo do gráfio. como ainda não busquei solução para isso eu estou deixando até as 18:00 que atende a maioria dos timeframes selecionado)
+                                    endTime = new Date(`${markerData.Data}T18:00:00Z`).getTime() / 1000;
+                                    console.log(`Using 18:00 fallback (different day)`);
+                                }
                             } else {
                                 // Fallback para 18:00 do mesmo dia (eu tenho um problema na renderização de que o horário do último candle muda dependendo do tempo do gráfio. como ainda não busquei solução para isso eu estou deixando até as 18:00 que atende a maioria dos timeframes selecionado)
                                 endTime = new Date(`${markerData.Data}T18:00:00Z`).getTime() / 1000;
-                                console.log(`Using 18:00 fallback (different day)`);
+                                console.log(`Using 18:00 fallback (no visible range)`);
                             }
-                        } else {
-                            // Fallback para 18:00 do mesmo dia (eu tenho um problema na renderização de que o horário do último candle muda dependendo do tempo do gráfio. como ainda não busquei solução para isso eu estou deixando até as 18:00 que atende a maioria dos timeframes selecionado)
-                            endTime = new Date(`${markerData.Data}T18:00:00Z`).getTime() / 1000;
-                            console.log(`Using 18:00 fallback (no visible range)`);
-                        }
-                        }
+                            }
 
-                        // Garantir que endTime seja sempre maior que startTime
-                        if (endTime <= startTime) {
-                            endTime = startTime + 3600; // Adiciona 1 hora como mínimo
-                            console.log(`Adjusted endTime to avoid invalid range`);
-                        }
+                            // Garantir que endTime seja sempre maior que startTime
+                            if (endTime <= startTime) {
+                                endTime = startTime + 3600; // Adiciona 1 hora como mínimo
+                                console.log(`Adjusted endTime to avoid invalid range`);
+                            }
 
-                        const p1 = {
-                            time: startTime,
-                            price: markerData.Preco + 0.5
-                        };
-                        const p2 = {
-                            time: endTime,
-                            price: markerData.Preco - 0.5
-                        };
-                        const color = markerData.Tipo === 'POC_VENDA' ? 'rgba(255, 0, 0, 1)' : 'rgba(16, 253, 8, 1)';
+                            const p1 = {
+                                time: startTime,
+                                price: markerData.Preco + 0.5
+                            };
+                            const p2 = {
+                                time: endTime,
+                                price: markerData.Preco - 0.5
+                            };
+                            const color = markerData.Tipo === 'POC_VENDA' ? 'rgba(255, 0, 0, 1)' : 'rgba(16, 253, 8, 1)';
 
-                        console.log(`Creating rectangle ${index}:`, {
-                            type: markerData.Tipo,
-                            p1: {...p1, time: new Date(p1.time * 1000).toISOString()},
-                            p2: {...p2, time: new Date(p2.time * 1000).toISOString()},
-                            color
-                        });
-
-                        try {
-                            const newRectangle = new RectanglePrimitive(chart, candlestickSeries, p1, p2, color);
-                            candlestickSeries.attachPrimitive(newRectangle);
-                            newRectangle.updateAllViews();
-                            activeMarkers.push(newRectangle);
-                            console.log(`Rectangle ${index} created and attached successfully. Total active markers: ${activeMarkers.length}`);
-                        } catch (error) {
-                            console.error(`Error creating rectangle ${index}:`, error, {
-                                startTime: new Date(startTime * 1000),
-                                endTime: new Date(endTime * 1000),
-                                p1, p2
+                            console.log(`Creating rectangle ${index}:`, {
+                                type: markerData.Tipo,
+                                p1: {...p1, time: new Date(p1.time * 1000).toISOString()},
+                                p2: {...p2, time: new Date(p2.time * 1000).toISOString()},
+                                color
                             });
+
+                            try {
+                                const newRectangle = new RectanglePrimitive(chart, candlestickSeries, p1, p2, color);
+                                candlestickSeries.attachPrimitive(newRectangle);
+                                newRectangle.updateAllViews();
+                                activeMarkers.push(newRectangle);
+                                console.log(`Rectangle ${index} created and attached successfully. Total active markers: ${activeMarkers.length}`);
+
+                            } catch (error) {
+                                console.error(`Error creating rectangle ${index}:`, error, {
+                                    startTime: new Date(startTime * 1000),
+                                    endTime: new Date(endTime * 1000),
+                                    p1, p2
+                                });
+                            }
+                        }
+                        else if (markerData.Tipo === 'AJUSTE') {
+                            // TESTE INICIAL TESTE DA LINHA DE AJUSTE
+                            const segmentSeries = chart.addSeries(LightweightCharts.LineSeries, {
+                                color: '#f0f8ff',
+                                lineWidth: 2,
+                                lineStyle: LightweightCharts.LineStyle.Dashed,
+                                lastValueVisible: false,
+                                priceLineVisible: false,
+                                crosshairMarkerVisible: false,
+                            });
+
+                            // use timestamps em segundos (UTC) em vez de strings
+                            segmentSeries.setData([
+                                { time: Math.floor(new Date('2025-09-25T10:00:00Z').getTime() / 1000), value: 5320 },
+                                { time: Math.floor(new Date('2025-09-25T12:30:00Z').getTime() / 1000), value: 5320 },
+                            ]);
+                            //FIM TESTE DA LINHA DE AJUSTE
                         }
                     });
                 });
