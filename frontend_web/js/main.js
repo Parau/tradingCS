@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
             locale: 'pt-BR',
         },
         grid: {
-            vertLines: { color: 'rgba(197, 203, 206, 0.5)' },
-            horzLines: { color: 'rgba(197, 203, 206, 0.5)' },
+            vertLines: { color: 'rgba(197, 203, 206, 0.1)' },
+            horzLines: { color: 'rgba(197, 203, 206, 0.1)' },
         },
         crosshair: {
             mode: LightweightCharts.CrosshairMode.Normal,
@@ -57,11 +57,17 @@ document.addEventListener('DOMContentLoaded', () => {
         borderUpColor: '#ffffffff',
         wickDownColor: '#a9a8a8ff',
         wickUpColor: '#ffffffff',
+        priceFormat: {
+            type: 'price',
+            precision: 2,   // casas decimais exibidas
+            minMove: 0.50,     // menor variação permitida (passo)
+        },
     });
 
     // --- Plugin Initialization ---
     // A inicialização agora é feita dinamicamente quando os dados chegam.
 
+    
     // --- Date Initialization ---
     function setDefaultDates() {
         const now = new Date();
@@ -77,6 +83,115 @@ document.addEventListener('DOMContentLoaded', () => {
 
     }
 
+    /*----------------------------------------------------------------------------
+    Função auxiliar para criar os canais baseados no preço de ajuste baseado na estratégia que estamos chamando neste projeto de fiborange. A especificação do seu funcionamento no formato Gherkin está no arquivo main.feature @fiborange
+    ---------------------------------------------------------------------------*/
+    function createFiborange(markerData) {
+	// Refatorado: cria níveis k = [0,1,2,-1,-2], cada um com center/top/bottom.
+	// Retorna um handle contendo as séries e destroy() para limpeza.
+	// Entradas esperadas em markerData: { Data: 'YYYY-MM-DD', Preco: number, Hora?: 'HH:MM' }
+
+	function toUtcSeconds(dateString, timeString = '10:00:00') {
+		const iso = `${dateString}T${timeString}Z`;
+		return Math.floor(new Date(iso).getTime() / 1000);
+	}
+
+	const ajuste = Number(markerData.Preco);
+	const startSec = toUtcSeconds(markerData.Data, '09:00:00');
+	const endSec = toUtcSeconds(markerData.Data, '18:30:00');
+
+	// parâmetros do indicador (conforme main.feature)
+	const passo = 0.005 * ajuste;       // 0,50% do ajuste
+	const meioCanal = 0.001 * ajuste;   // 0,10% do ajuste
+
+	// níveis solicitados: 0, +1, +2, -1, -2
+	const ks = [0, 1, 2, -1, -2];
+
+	// guarda referências às séries criadas para retorno/remoção
+	const handles = [];
+
+	ks.forEach(k => {
+		// cálculos sem arredondamento intermediário
+		const linhaExata = ajuste + k * passo;
+		const baseExata = linhaExata - meioCanal;
+		const topoExata = linhaExata + meioCanal;
+
+		// arredondamento final para 2 casas decimais (half-up via toFixed)
+		const linha = Number(linhaExata.toFixed(2));
+		const base = Number(baseExata.toFixed(2));
+		const topo = Number(topoExata.toFixed(2));
+
+		// dados para plotagem (dois pontos: início e fim do dia)
+		const centerData = [
+			{ time: startSec, value: linha },
+			{ time: endSec, value: linha },
+		];
+		const topData = [
+			{ time: startSec, value: topo },
+			{ time: endSec, value: topo },
+		];
+		const bottomData = [
+			{ time: startSec, value: base },
+			{ time: endSec, value: base },
+		];
+
+		// estilo: destaque para k=0, estilos mais discretos para níveis externos
+		const centerStyle = k === 0 ? {
+			color: '#ffff10ff',
+			lineWidth: 2,
+			lineStyle: LightweightCharts.LineStyle.Dashed,
+			lastValueVisible: false,
+			priceLineVisible: false,
+			crosshairMarkerVisible: false,
+		} : {
+			color: 'rgba(200,162,200,0.45)',
+			lineWidth: 1,
+			lastValueVisible: false,
+			priceLineVisible: false,
+			crosshairMarkerVisible: false,
+		};
+
+		const edgeStyle = {
+			color: 'rgba(255,0,255,1)',
+			lineWidth: 1,
+			lastValueVisible: false,
+			priceLineVisible: false,
+			crosshairMarkerVisible: false,
+		};
+
+		const centerLine = chart.addSeries(LightweightCharts.LineSeries, centerStyle);
+		centerLine.setData(centerData);
+
+		const topLine = chart.addSeries(LightweightCharts.LineSeries, edgeStyle);
+		topLine.setData(topData);
+
+		const bottomLine = chart.addSeries(LightweightCharts.LineSeries, edgeStyle);
+		bottomLine.setData(bottomData);
+
+		handles.push({
+			k,
+			linha,
+			base,
+			topo,
+			centerLine,
+			topLine,
+			bottomLine,
+		});
+	});
+
+	return {
+		levels: handles,
+		meioCanal,
+		destroy() {
+			handles.forEach(h => {
+				try { chart.removeSeries(h.centerLine); } catch (e) { console.warn('Falha ao remover centerLine:', e); }
+				try { chart.removeSeries(h.topLine); } catch (e) { console.warn('Falha ao remover topLine:', e); }
+				try { chart.removeSeries(h.bottomLine); } catch (e) { console.warn('Falha ao remover bottomLine:', e); }
+			});
+		},
+	};
+}
+
     // --- Data Fetching and WebSocket ---
     async function loadChartData() {
         const timeframe = timeframeSelect.value;
@@ -89,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Envia a string "ingênua", o backend vai interpretar como America/Sao_Paulo
-        const url = `${API_BASE_URL}/api/history/${SYMBOL}?timeframe=${timeframe}&start=${start}:00Z&end=${end}:00Z`;
+        const url = `${API_BASE_URL}/api/history/${SYMBOL}?timeframe=${timeframe}&start=${start}:00Z&end=${end}:00`;
 
         try {
             console.log(`Fetching: ${url}`);
@@ -102,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`Received ${data.length} data points.`);
 
             //Manter este código comentado porque é usado para debugar os dados recebidos do servidor
-            /*data.forEach((point, index) => {
+            data.forEach((point, index) => {
                 const date = new Date(point.time * 1000);
                 const formattedTime = date.toLocaleString('pt-BR', {
                     timeZone: 'UTC',
@@ -115,7 +230,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     hour12: false,
                 });
                 console.log(`Point ${index}: time=${formattedTime}, open=${point.open}, high=${point.high}, low=${point.low}, close=${point.close}`);
-            });*/
+            });
             candlestickSeries.setData(data);
 
             chart.timeScale().fitContent();
@@ -266,22 +381,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             }
                         }
                         else if (markerData.Tipo === 'AJUSTE') {
-                            // TESTE INICIAL TESTE DA LINHA DE AJUSTE
-                            const segmentSeries = chart.addSeries(LightweightCharts.LineSeries, {
-                                color: '#f0f8ff',
-                                lineWidth: 2,
-                                lineStyle: LightweightCharts.LineStyle.Dashed,
-                                lastValueVisible: false,
-                                priceLineVisible: false,
-                                crosshairMarkerVisible: false,
-                            });
-
-                            // use timestamps em segundos (UTC) em vez de strings
-                            segmentSeries.setData([
-                                { time: Math.floor(new Date('2025-09-25T10:00:00Z').getTime() / 1000), value: 5320 },
-                                { time: Math.floor(new Date('2025-09-25T12:30:00Z').getTime() / 1000), value: 5320 },
-                            ]);
-                            //FIM TESTE DA LINHA DE AJUSTE
+                            // Cria a linha de ajuste através da função auxiliar
+                            createFiborange(markerData);
                         }
                     });
                 });

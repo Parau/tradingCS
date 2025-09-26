@@ -5,9 +5,9 @@ import requests
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
     QTableWidgetItem, QPushButton, QLineEdit, QFileDialog, QComboBox,
-    QHeaderView, QMessageBox
+    QHeaderView, QMessageBox, QLabel
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QTimer
 
 class MarkerTableWindow(QWidget):
     def __init__(self):
@@ -63,6 +63,11 @@ class MarkerTableWindow(QWidget):
         self.btn_update_chart.setStyleSheet("background-color: #2563eb; color: white; padding: 10px; font-weight: bold;")
         self.btn_update_chart.clicked.connect(self.update_chart)
         layout.addWidget(self.btn_update_chart)
+
+        # Adicionar QLabel para mensagens de status temporárias
+        self.status_label = QLabel("")
+        self.status_label.setStyleSheet("color: green; font-weight: bold;")
+        layout.addWidget(self.status_label)
 
         self.setLayout(layout)
 
@@ -159,7 +164,9 @@ class MarkerTableWindow(QWidget):
             response = requests.post(self.api_url, json=payload, timeout=10)
             response.raise_for_status() # Lança exceção para códigos de erro HTTP
 
-            QMessageBox.information(self, "Sucesso", "Os dados de marcação foram enviados para o gráfico.")
+            # Substituir QMessageBox por mensagem temporária no QLabel
+            self.status_label.setText("Os dados de marcação foram enviados para o gráfico.")
+            QTimer.singleShot(3000, lambda: self.status_label.setText(""))  # Limpa após 3 segundos
 
         except requests.exceptions.RequestException as e:
             QMessageBox.critical(self, "Erro de Conexão", f"Não foi possível enviar os dados para a API: {e}")
