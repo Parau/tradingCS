@@ -53,8 +53,12 @@ A nova abordagem de conexão é muito mais simples. O sistema irá se conectar a
 
 Não é mais necessário configurar credenciais em um arquivo `.env`.
 
-### 4. Executando a Aplicação
+### 4. Carregando Conda
+cd /d E:\dev\tradingCS
+miniconda.bat
+conda activate trading
 
+### 5. Executando a Aplicação
 Para iniciar o sistema, execute o painel de controle principal:
 
 ```bash
@@ -63,7 +67,7 @@ python frontend_pyqt/main_dashboard.py
 Pra acessar o frontend web
 http://127.0.0.1:8000/
 
-### 5. Utilização
+### 6. Utilização
 
 1.  Com o painel de controle aberto, clique em **"Iniciar Servidor FastAPI"**. O status na barra inferior deve mudar para "Rodando" e o status do MT5 para "Conectado".
 2.  Clique em **"Abrir Gráfico"** para abrir a interface do gráfico no seu navegador.
