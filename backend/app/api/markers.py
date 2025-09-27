@@ -1,9 +1,15 @@
 import json
 import asyncio
-from typing import List, Literal
+from typing import List
+import sys
+import os
 
 from fastapi import APIRouter, HTTPException, Body
 from pydantic import BaseModel, Field
+
+# Adiciona o diretório shared ao path para importação das constantes
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..', 'shared'))
+from constants import MarkerTypeEnum
 
 # Importa o gerenciador de conexões do módulo de websockets
 from .websockets import manager
@@ -17,7 +23,7 @@ class MarkerItem(BaseModel):
     Data: str = Field(..., description="Data da marcação no formato YYYY-MM-DD")
     Hora: str = Field(..., description="Hora da marcação no formato HH:MM")
     Preco: float = Field(...,  description="Preço da marcação")
-    Tipo: Literal['POC_VENDA', 'POC_COMPRA', 'AJUSTE'] = Field(..., description="Tipo da marcação")
+    Tipo: MarkerTypeEnum = Field(..., description="Tipo da marcação")
 
 
 class MarkerData(BaseModel):
