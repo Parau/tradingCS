@@ -13,6 +13,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let websocket;
     let candlestickSeries;
     let activeMarkers = []; // Array para rastrear os retângulos no gráfico
+    let activeFiborange = null; //Rastrear o fiborange ativo
+
+    // Armazena os dados das jabulanis
+    const jabulani = {
+        C: { series: null, data: [] },
+        V: { series: null, data: [] },
+    };
 
     // --- Chart Initialization ---
     const chart = LightweightCharts.createChart(chartContainer, {
@@ -82,6 +89,11 @@ document.addEventListener('DOMContentLoaded', () => {
         endDateInput.value = endString;
 
     }
+    // Conversão para usar no LightweightCharts
+    function toUtcSeconds(dateString, timeString = '10:00:00') {
+		const iso = `${dateString}T${timeString}Z`;
+		return Math.floor(new Date(iso).getTime() / 1000);
+	}
 
     /*----------------------------------------------------------------------------
     Função auxiliar para criar os canais baseados no preço de ajuste baseado na estratégia que estamos chamando neste projeto de fiborange. A especificação do seu funcionamento no formato Gherkin está no arquivo main.feature @fiborange
@@ -90,11 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	// Refatorado: cria níveis k = [0,1,2,-1,-2], cada um com center/top/bottom.
 	// Retorna um handle contendo as séries e destroy() para limpeza.
 	// Entradas esperadas em markerData: { Data: 'YYYY-MM-DD', Preco: number, Hora?: 'HH:MM' }
-
-	function toUtcSeconds(dateString, timeString = '10:00:00') {
-		const iso = `${dateString}T${timeString}Z`;
-		return Math.floor(new Date(iso).getTime() / 1000);
-	}
 
 	const ajuste = Number(markerData.Preco);
 	const startSec = toUtcSeconds(markerData.Data, '09:00:00');
@@ -191,6 +198,37 @@ document.addEventListener('DOMContentLoaded', () => {
 		},
 	};
 }
+    /*----------------------------------------------------------------------------
+    Função auxiliar para criar a marcação da "jabulani" (JABULANI_C ou JABULANI_V) que indica uma possível mudança na direção do preço
+
+    ---------------------------------------------------------------------------*/
+    function createJabulani(markerData) {
+        const preco = Number(markerData.Preco);
+	    const posicao = toUtcSeconds(markerData.Data, markerData.Hora);
+        const isCompra = markerData.Tipo === 'JABULANI_C';
+        
+        const cor = isCompra ? 'rgba(16, 253, 8, 1)' : 'rgba(255, 0, 0, 1)'; // verde para compra, vermelho para venda
+
+        const entry = isCompra ? jabulani.C : jabulani.V;
+
+        entry.data.push(
+			{ time: posicao, value: preco }
+		);
+
+        if (entry.series == null) {
+            entry.series = chart.addSeries(LightweightCharts.LineSeries, {
+                color: cor,
+                lineVisible: false,
+                pointMarkersVisible: true,
+                pointMarkersRadius: 4,
+                priceLineVisible: false,
+                lastValueVisible: false
+            });
+            console.log('Created new Jabulani series');
+        }
+        console.log('Updating Jabulani series with data:', entry.data);
+        entry.series.setData(entry.data);
+    }
 
     // --- Data Fetching and WebSocket ---
     async function loadChartData() {
@@ -217,7 +255,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log(`Received ${data.length} data points.`);
 
             //Manter este código comentado porque é usado para debugar os dados recebidos do servidor
-            data.forEach((point, index) => {
+            /*data.forEach((point, index) => {
                 const date = new Date(point.time * 1000);
                 const formattedTime = date.toLocaleString('pt-BR', {
                     timeZone: 'UTC',
@@ -230,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     hour12: false,
                 });
                 console.log(`Point ${index}: time=${formattedTime}, open=${point.open}, high=${point.high}, low=${point.low}, close=${point.close}`);
-            });
+            });*/
             candlestickSeries.setData(data);
 
             chart.timeScale().fitContent();
@@ -276,6 +314,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 activeMarkers.length = 0;
+
+                if (activeFiborange !== null) {
+                    console.log('Removing existing fiborange before creating a new one.');
+                    activeFiborange.destroy();
+                    activeFiborange = null;
+                }
+
+                //Zera os dados das jabulanis
+                jabulani.C.data.length = 0; 
+                jabulani.V.data.length = 0;
 
                 // 2. Ordena os marcadores por data e hora
                 const sortedMarkers = [...message.data].sort((a, b) => {
@@ -350,11 +398,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             const p1 = {
                                 time: startTime,
-                                price: markerData.Preco + 0.5
+                                price: markerData.Preco + 2
                             };
                             const p2 = {
                                 time: endTime,
-                                price: markerData.Preco - 0.5
+                                price: markerData.Preco - 2
                             };
                             const color = markerData.Tipo === 'POC_VENDA' ? 'rgba(255, 0, 0, 1)' : 'rgba(16, 253, 8, 1)';
 
@@ -382,11 +430,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         else if (markerData.Tipo === 'AJUSTE') {
                             // Cria a linha de ajuste através da função auxiliar
-                            createFiborange(markerData);
+                            activeFiborange = createFiborange(markerData);
+                            // Cria a linha de ajuste através da função auxiliar e guarda a referência
+                            console.log(`Creating fiborange for AJUSTE marker:`, markerData);
+                        }
+                        else if (markerData.Tipo.startsWith('JABULANI')) {
+                            console.log(`Creating jabulani:`, markerData);
+                            createJabulani(markerData);
                         }
                     });
                 });
-                
                 console.log(`Final count - Total active markers: ${activeMarkers.length}`);
             }
         };
