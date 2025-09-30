@@ -60,11 +60,10 @@ conda activate trading
 
 ### 5. Executando a Aplicação
 Para iniciar o sistema, execute o painel de controle principal:
-
-```bash
 python frontend_pyqt/main_dashboard.py
-```
+
 Pra acessar o frontend web
+Usar o main dashboar para lançar o navegador.
 http://127.0.0.1:8000/
 
 ### 6. Utilização
