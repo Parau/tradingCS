@@ -70,6 +70,7 @@ class CaptureWindow(QWidget):
     
     Exibe múltiplas regiões de captura em layout grid,
     com opções de configuração e controle.
+    Layout otimizado para maximizar espaço de exibição do conteúdo capturado.
     """
     
     def __init__(self, window_name: str, regions: List, manager, parent=None):
@@ -86,57 +87,135 @@ class CaptureWindow(QWidget):
         self._setup_window_properties()
 
     def _setup_ui(self):
-        """Configura a interface da janela."""
+        """Configura a interface da janela otimizada para maximizar área de captura."""
+        # Layout principal sem margens para maximizar espaço
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(2, 2, 2, 2)  # Margens mínimas
+        layout.setSpacing(2)  # Espaçamento mínimo entre elementos
         
-        # Barra de controle (mínima)
+        # Barra de controle compacta e minimalista
         control_layout = QHBoxLayout()
+        control_layout.setContentsMargins(2, 2, 2, 2)  # Margens mínimas
+        control_layout.setSpacing(2)  # Espaçamento mínimo entre botões
+        
+        # Botões com tamanho ainda mais compacto
+        button_size = 24  # Reduzido de 30 para 24 pixels
         
         # Botão de configuração
         config_btn = QPushButton("⚙")
-        config_btn.setFixedSize(30, 30)
+        config_btn.setFixedSize(button_size, button_size)
         config_btn.setToolTip("Configurações")
         config_btn.clicked.connect(self._show_config_dialog)
+        config_btn.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #666;
+                border-radius: 3px;
+                background-color: #f0f0f0;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+            QPushButton:pressed {
+                background-color: #d0d0d0;
+            }
+        """)
         
         # Botão sempre no topo
         self.always_on_top_btn = QPushButton("📌")
-        self.always_on_top_btn.setFixedSize(30, 30)
+        self.always_on_top_btn.setFixedSize(button_size, button_size)
         self.always_on_top_btn.setToolTip("Sempre no topo")
         self.always_on_top_btn.setCheckable(True)
         self.always_on_top_btn.clicked.connect(self._toggle_always_on_top)
+        self.always_on_top_btn.setStyleSheet("""
+            QPushButton {
+                border: 1px solid #666;
+                border-radius: 3px;
+                background-color: #f0f0f0;
+                font-size: 10px;
+            }
+            QPushButton:hover {
+                background-color: #e0e0e0;
+            }
+            QPushButton:checked {
+                background-color: #4a90e2;
+                color: white;
+            }
+        """)
         
+        # Label compacto com nome da janela (opcional, pode ser removido para mais espaço)
+        window_label = QLabel(self.window_name)
+        window_label.setStyleSheet("""
+            QLabel {
+                font-size: 10px;
+                color: #666;
+                font-weight: bold;
+            }
+        """)
+        window_label.setMaximumHeight(16)  # Altura mínima
+        
+        # Organiza controles de forma compacta
         control_layout.addWidget(config_btn)
         control_layout.addWidget(self.always_on_top_btn)
-        control_layout.addStretch()
+        control_layout.addWidget(window_label)
+        control_layout.addStretch()  # Empurra botões para a esquerda
         
-        # Área de capturas
+        # Área de capturas otimizada para ocupar máximo espaço
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         
+        # CORRIGIDO: Atualizado em: 2024-12-28 — PyQt6 moveu ScrollBarPolicy para Qt namespace
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # Scroll apenas quando necessário
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        scroll_area.setFrameStyle(0)  # Remove borda do scroll area
+        
         captures_widget = QWidget()
-        self.captures_layout = QVBoxLayout(captures_widget)  # Pode mudar para grid depois
+        
+        # Layout das capturas otimizado
+        self.captures_layout = QVBoxLayout(captures_widget)
+        self.captures_layout.setContentsMargins(0, 0, 0, 0)  # Remove margens completamente
+        self.captures_layout.setSpacing(1)  # Espaçamento mínimo entre capturas
         
         # Cria widgets de exibição para cada região
         for region in self.regions:
             display_widget = CaptureDisplayWidget(region)
+            
+            # Otimiza o widget de exibição para ocupar mais espaço
+            display_widget.setStyleSheet("""
+                QLabel {
+                    border: 1px solid #ddd;
+                    background-color: #fafafa;
+                    margin: 0px;
+                }
+            """)
+            display_widget.setMinimumSize(150, 100)  # Tamanho mínimo maior para melhor visualização
+            
             self.display_widgets.append(display_widget)
             self.captures_layout.addWidget(display_widget)
         
         scroll_area.setWidget(captures_widget)
         
-        layout.addLayout(control_layout)
-        layout.addWidget(scroll_area)
+        # Adiciona elementos ao layout principal priorizando espaço de captura
+        layout.addLayout(control_layout)  # Controles ocupam espaço mínimo
+        layout.addWidget(scroll_area, 1)  # Área de captura recebe todo o espaço restante (stretch factor = 1)
 
     def _setup_window_properties(self):
-        """Configura propriedades da janela."""
-        self.setWindowTitle(f"Captura: {self.window_name}")
-        self.resize(400, 300)
+        """Configura propriedades da janela otimizada para exibição de conteúdo."""
+        self.setWindowTitle(f"📹 {self.window_name}")  # Título mais compacto
+        self.resize(450, 350)  # Tamanho inicial ligeiramente maior para melhor visualização
+        
+        # Remove decorações desnecessárias se possível
+        # self.setWindowFlags(Qt.WindowType.FramelessWindowHint)  # Opcional: janela sem borda
         
         # Define ícone se disponível
         try:
             self.setWindowIcon(QIcon("📹"))  # Fallback para emoji
         except:
             pass
+        
+        # Otimizações de renderização
+        self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent)  # Otimização de pintura
+        self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)  # Remove background sistema
 
     def _show_config_dialog(self):
         """Exibe diálogo de configuração."""
