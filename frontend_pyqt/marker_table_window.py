@@ -2,12 +2,17 @@ import sys
 import csv
 import json
 import requests
+import os
 from PyQt6.QtWidgets import (
     QApplication, QWidget, QVBoxLayout, QHBoxLayout, QTableWidget,
     QTableWidgetItem, QPushButton, QLineEdit, QFileDialog, QComboBox,
     QHeaderView, QMessageBox, QLabel
 )
 from PyQt6.QtCore import Qt, QTimer
+
+# Importa constantes compartilhadas do diretório shared
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'shared'))
+from constants import MARKER_TYPES
 
 class MarkerTableWindow(QWidget):
     def __init__(self):
@@ -75,9 +80,9 @@ class MarkerTableWindow(QWidget):
         row_position = self.table.rowCount()
         self.table.insertRow(row_position)
 
-        # Adiciona um QComboBox na coluna "Tipo"
+        # Adiciona um QComboBox na coluna "Tipo" usando constantes compartilhadas
         combo_box = QComboBox()
-        combo_box.addItems(["POC_VENDA", "POC_COMPRA", "AJUSTE"])
+        combo_box.addItems(MARKER_TYPES)
         self.table.setCellWidget(row_position, 3, combo_box)
 
     def remove_row(self):
@@ -101,7 +106,7 @@ class MarkerTableWindow(QWidget):
                         self.table.setItem(row, 2, QTableWidgetItem(row_data[2]))
 
                         combo_box = QComboBox()
-                        combo_box.addItems(["POC_VENDA", "POC_COMPRA", "AJUSTE"])
+                        combo_box.addItems(MARKER_TYPES)
                         combo_box.setCurrentText(row_data[3])
                         self.table.setCellWidget(row, 3, combo_box)
             except Exception as e:
