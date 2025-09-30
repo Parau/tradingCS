@@ -306,7 +306,7 @@ class CaptureManager(QObject):
         self.regions = new_regions
         
         # Reinicia se estava rodando
-        if was_running and new_regions:
-            self.start_capture()
+        if was_running:
+            self.start_capture()  # Sempre reinicia para recriar as janelas
             
         self.logger.info(f"Regiões atualizadas: {len(new_regions)} regiões ativas")

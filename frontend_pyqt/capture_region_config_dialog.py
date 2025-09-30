@@ -280,8 +280,9 @@ class CaptureRegionConfigDialog(QDialog):
         from capture_manager import CaptureRegion  # Import local para evitar circular
         
         new_regions = []
+        window_name = None  # Nome da janela sendo editada
         
-        # Lê dados da tabela e cria novas regiões
+        # Lê dados da tabela e cria novas regiões para esta janela
         for row in range(self.regions_table.rowCount()):
             try:
                 # Extrai dados da linha
@@ -296,6 +297,10 @@ class CaptureRegionConfigDialog(QDialog):
                 if not all([window_name_item, display_id_item, x1_item, y1_item, x2_item, y2_item]):
                     self.logger.warning(f"Linha {row + 1} tem campos vazios, ignorando")
                     continue
+                
+                # Obtém o nome da janela sendo editada (todos devem ter o mesmo nome)
+                if window_name is None:
+                    window_name = window_name_item.text().strip()
                 
                 # Cria nova região
                 region = CaptureRegion(
@@ -317,29 +322,27 @@ class CaptureRegionConfigDialog(QDialog):
                 self.logger.warning(f"Erro ao processar linha {row + 1}: {e}")
                 continue
         
-        # Se há mudanças, atualiza o manager
-        if new_regions != self.manager.regions:
-            was_running = self.manager.update_timer.isActive()
-            
-            # Para o sistema se estiver rodando
-            if was_running:
-                self.manager.stop_capture()
-            
-            # Atualiza as regiões
-            self.manager.regions = new_regions
-            self.regions = new_regions  # Atualiza também a referência local
-            
-            # Reinicia se estava rodando
-            if was_running:
-                self.manager.start_capture()
-                
-            self.logger.info(f"Regiões atualizadas: {len(new_regions)} regiões ativas")
+        # IMPORTANTE: Atualiza apenas as regiões desta janela, mantendo as outras
+        # Atualizado em: 2024-12-28 — Corrigido para preservar regiões de outras janelas
+        current_window_name = self.regions[0].window_name if self.regions else None
+        
+        # Filtra todas as regiões do manager que NÃO pertencem à janela atual
+        other_regions = [r for r in self.manager.regions if r.window_name != current_window_name]
+        
+        # Combina as regiões atualizadas com as regiões de outras janelas
+        all_regions = other_regions + new_regions
+        
+        # Atualiza o manager com todas as regiões
+        self.manager.update_regions(all_regions)
+        
+        # Atualiza a referência local apenas para as regiões desta janela
+        self.regions = new_regions
 
     def _save_regions_to_csv(self):
         """
-        Salva as regiões atuais no arquivo CSV.
+        Salva todas as regiões no arquivo CSV.
         
-        Atualiza o arquivo CSV com as mudanças feitas na tabela.
+        Atualiza o arquivo CSV com todas as regiões do manager (de todas as janelas).
         """
         try:
             csv_path = Path(self.manager.csv_file_path)
@@ -347,35 +350,30 @@ class CaptureRegionConfigDialog(QDialog):
             # Backup do arquivo original
             if csv_path.exists():
                 backup_path = csv_path.with_suffix('.csv.backup')
+                if backup_path.exists():
+                    backup_path.unlink()
                 csv_path.rename(backup_path)
                 self.logger.info(f"Backup criado: {backup_path}")
             
-            # Escreve novo arquivo
+            # Escreve novo arquivo com TODAS as regiões do manager
             with open(csv_path, 'w', newline='', encoding='utf-8') as file:
                 writer = csv.writer(file)
                 
                 # Cabeçalho
                 writer.writerow(['NOME_JANELA', 'ID_DISPLAY', 'X1', 'Y1', 'X2', 'Y2'])
                 
-                # Dados das regiões
-                for row in range(self.regions_table.rowCount()):
-                    try:
-                        row_data = []
-                        for col in range(6):  # 6 colunas
-                            item = self.regions_table.item(row, col)
-                            if item:
-                                row_data.append(item.text().strip())
-                            else:
-                                row_data.append("")
+                # Salva TODAS as regiões do manager (que já foram atualizadas pelo _apply_changes)
+                for region in self.manager.regions:
+                    writer.writerow([
+                        region.window_name,
+                        str(region.display_id),
+                        str(region.x1),
+                        str(region.y1),
+                        str(region.x2),
+                        str(region.y2)
+                    ])
                         
-                        # Só escreve se a linha não estiver vazia
-                        if any(row_data):
-                            writer.writerow(row_data)
-                            
-                    except Exception as e:
-                        self.logger.warning(f"Erro ao salvar linha {row + 1}: {e}")
-                        
-            self.logger.info(f"Configurações salvas em: {csv_path}")
+            self.logger.info(f"Configurações salvas em: {csv_path} - Total de regiões: {len(self.manager.regions)}")
             
         except Exception as e:
             self.logger.error(f"Erro ao salvar CSV: {e}")
@@ -384,15 +382,9 @@ class CaptureRegionConfigDialog(QDialog):
     def _ok_clicked(self):
         """Aplica mudanças e fecha diálogo."""
         try:
-            # Aplica as mudanças
             self._apply_changes()
-            
-            # Salva no CSV
             self._save_regions_to_csv()
-            
-            # Fecha o diálogo
             self.accept()
-            
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao salvar configurações: {e}")
             
@@ -404,3 +396,11 @@ class CaptureRegionConfigDialog(QDialog):
             
         except Exception as e:
             QMessageBox.critical(self, "Erro", f"Erro ao salvar configurações: {e}")
+            self.accept()
+            # Fecha o diálogo
+            self.accept()
+            
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Erro ao salvar configurações: {e}")
+            self.accept()
+
