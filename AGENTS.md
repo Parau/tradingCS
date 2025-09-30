@@ -9,7 +9,7 @@ Este projeto é um trading system que usa dados históricos e em tempo real para
 O sistema é composto por três componentes principais que rodam de forma independente:
 
 1.  **`backend/`**: Um servidor **FastAPI** que centraliza toda a lógica de negócio e comunicação com o MetaTrader 5 (MT5).
-2.  **`frontend_pyqt/`**: Uma aplicação de desktop **PyQt** que funciona como o painel de controle principal.
+2.  **`frontend_pyqt/`**: Uma aplicação de desktop **PyQt6** que funciona como o painel de controle principal.
 3.  **`frontend_web/`**: Uma interface web de cliente para visualização de gráficos, baseada em HTML, CSS e JavaScript.
 
 **Princípio Fundamental:** O backend FastAPI é o cérebro e a única fonte de dados do MT5. Todos os outros componentes são clientes de sua API.
