@@ -81,6 +81,67 @@ class CaptureManager(QObject):
         self.update_timer = QTimer()
         
         self._setup_timer()
+        self._log_available_displays()
+
+    def _log_available_displays(self):
+        """
+        Imprime informações sobre todos os displays disponíveis no sistema.
+        
+        Lista cada display com seu ID (para uso no CSV), nome, resolução e posição.
+        Útil para configurar corretamente as regiões de captura.
+        """
+        app = QApplication.instance()
+        if not app:
+            self.logger.warning("QApplication não encontrada para listar displays")
+            return
+            
+        screens = app.screens()
+        
+        print("\n" + "="*60)
+        print("SISTEMA DE CAPTURA - DISPLAYS DISPONÍVEIS")
+        print("="*60)
+        
+        if not screens:
+            print("❌ Nenhum display encontrado!")
+            self.logger.error("Nenhum display disponível no sistema")
+            return
+        
+        print(f"📺 Total de displays encontrados: {len(screens)}")
+        print()
+        
+        for i, screen in enumerate(screens):
+            display_id = i + 1  # IDs começam em 1 para o CSV
+            geometry = screen.geometry()
+            available_geometry = screen.availableGeometry()
+            
+            print(f"Display ID: {display_id}")
+            print(f"  Nome: {screen.name()}")
+            print(f"  Resolução: {geometry.width()} x {geometry.height()} pixels")
+            print(f"  Posição: ({geometry.x()}, {geometry.y()})")
+            print(f"  Área total: {geometry.width()} x {geometry.height()}")
+            print(f"  Área disponível: {available_geometry.width()} x {available_geometry.height()}")
+            print(f"  DPI: {screen.logicalDotsPerInch():.1f}")
+            print(f"  Fator de escala: {screen.devicePixelRatio():.2f}")
+            
+            # Indica se é o display primário
+            if screen == app.primaryScreen():
+                print(f"  🌟 Display PRIMÁRIO")
+            
+            print()
+        
+        print("💡 DICA: Use o 'Display ID' no campo ID_DISPLAY do seu CSV")
+        print("💡 Coordenadas X1,Y1,X2,Y2 são relativas ao display específico")
+        print("💡 Exemplo para capturar canto superior esquerdo do Display 1:")
+        print("   NOME_JANELA, ID_DISPLAY, X1, Y1, X2, Y2")
+        print("   MinhaJanela, 1, 0, 0, 300, 200")
+        print("="*60 + "\n")
+        
+        # Log também para o arquivo de log
+        self.logger.info(f"Sistema iniciado com {len(screens)} display(s) disponível(is)")
+        for i, screen in enumerate(screens):
+            geometry = screen.geometry()
+            self.logger.info(f"Display {i+1}: {screen.name()} - "
+                           f"{geometry.width()}x{geometry.height()} @ ({geometry.x()},{geometry.y()})")
 
     def _setup_timer(self):
         """Configura o timer de atualização das capturas."""

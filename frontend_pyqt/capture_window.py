@@ -167,21 +167,24 @@ class CaptureWindow(QWidget):
         
         for i, (region, widget) in enumerate(zip(self.regions, self.display_widgets)):
             try:
-                # Captura a região específica - Atualizado em: 2024-12-28 — PyQt6 não tem desktop()
+                # Captura a região específica
                 if region.display_id - 1 >= len(screens):
                     self.logger.error(f"Display {region.display_id} não existe")
                     continue
                     
                 screen = screens[region.display_id - 1]  # 0-indexed
                 
-                # Ajusta coordenadas para coordenadas globais
-                screen_geometry = screen.geometry()
-                global_x = screen_geometry.x() + region.x1
-                global_y = screen_geometry.y() + region.y1
+                # CORRIGIDO: Não precisa ajustar para coordenadas globais
+                # O grabWindow de um screen específico já espera coordenadas relativas àquele screen
+                # As coordenadas X1,Y1 do CSV já são relativas ao display específico
                 
-                # Captura a tela usando grabWindow do screen
-                pixmap = screen.grabWindow(0, global_x, global_y, 
+                # Captura a tela usando coordenadas RELATIVAS ao monitor
+                pixmap = screen.grabWindow(0, region.x1, region.y1, 
                                          region.width, region.height)
+                
+                # Para depuração: registra as coordenadas e dimensões usadas
+                self.logger.debug(f"Captura em Display {region.display_id}: ({region.x1},{region.y1}) "
+                               f"tamanho {region.width}x{region.height}")
                 
                 widget.set_capture(pixmap)
                 
