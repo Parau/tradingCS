@@ -164,9 +164,9 @@ class CaptureWindow(QWidget):
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
         
-        # CORRIGIDO: Atualizado em: 2024-12-28 — PyQt6 moveu ScrollBarPolicy para Qt namespace
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # Scroll apenas quando necessário
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        # CORRIGIDO: Atualizado em: 2024-12-28 — PyQt6 usa ScrollBarAlwaysOff em vez de ScrollBarNever
+        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)  # Scroll vertical apenas quando necessário
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)  # Nunca exibe scroll horizontal
         scroll_area.setFrameStyle(0)  # Remove borda do scroll area
         
         captures_widget = QWidget()
