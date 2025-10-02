@@ -6,18 +6,27 @@ import requests
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
-    QPushButton, QLabel, QStatusBar
+    QPushButton, QLabel, QStatusBar, QMessageBox
 )
+from PyQt6.QtGui import QAction
 from PyQt6.QtCore import QTimer, QProcess, QProcessEnvironment
 
 # Importa a janela da tabela de marcações
 from marker_table_window import MarkerTableWindow
+
+# Import absoluto para capture_manager - funciona quando executado diretamente
+try:
+    from capture_manager import CaptureManager
+except ImportError:
+    # Fallback para import relativo se estiver sendo importado como módulo
+    from .capture_manager import CaptureManager
 
 class MainDashboard(QMainWindow):
     def __init__(self):
         super().__init__()
         self.server_process = None
         self.marker_table_window = None # Para manter a referência
+        self.capture_manager = None
 
         self.init_ui()
         self.setup_status_timer()
@@ -56,6 +65,20 @@ class MainDashboard(QMainWindow):
         self.mt5_status_label = QLabel("MT5: Desconectado")
         self.status_bar.addWidget(self.server_status_label)
         self.status_bar.addPermanentWidget(self.mt5_status_label)
+
+        # Adicionar toolbar
+        self.toolbar = self.addToolBar("Principal")
+        self._setup_ui()
+
+    def _setup_ui(self):
+        # Adicionar ação de captura à toolbar
+        capture_action = QAction("📹 Captura de Tela", self)
+        capture_action.setToolTip("Sistema de captura de múltiplas regiões")
+        capture_action.triggered.connect(self._open_capture_system)
+
+        # Adicionar à toolbar existente ou criar nova seção
+        if hasattr(self, 'toolbar'):
+            self.toolbar.addAction(capture_action)
 
     def setup_status_timer(self):
         self.timer = QTimer(self)
@@ -166,7 +189,39 @@ class MainDashboard(QMainWindow):
             self.marker_table_window.activateWindow()
             self.marker_table_window.raise_()
 
+    def _open_capture_system(self):
+        """Abre o sistema de captura de tela."""
+        try:
+            if not self.capture_manager:
+                self.capture_manager = CaptureManager()
+                self.capture_manager.error_occurred.connect(self._show_capture_error)
+
+            # Tenta carregar configuração padrão
+            if self.capture_manager.load_config():
+                self.capture_manager.start_capture()
+            else:
+                # Se não conseguir carregar, abre diálogo de configuração
+                try:
+                    from capture_region_config_dialog import CaptureRegionConfigDialog
+                except ImportError:
+                    from .capture_region_config_dialog import CaptureRegionConfigDialog
+                    
+                dialog = CaptureRegionConfigDialog([], self.capture_manager, self)
+                dialog.exec()
+
+        except Exception as e:
+            self._show_capture_error(f"Erro ao inicializar sistema de captura: {e}")
+
+    def _show_capture_error(self, error_message: str):
+        """Exibe erro do sistema de captura."""
+        QMessageBox.critical(self, "Erro - Sistema de Captura", error_message)
+
     def closeEvent(self, event):
+        """Trata fechamento da aplicação."""
+        # Para sistema de captura se estiver rodando
+        if self.capture_manager:
+            self.capture_manager.stop_capture()
+
         # Garante que o servidor FastAPI seja encerrado ao fechar a janela
         self.stop_server()
         event.accept()
