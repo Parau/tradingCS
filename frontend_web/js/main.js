@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const updateButton = document.getElementById('update-chart');
     const wsStatus = document.querySelector('#ws-status span');
 
-    const SYMBOL = 'WDOV25';
+    const SYMBOL = 'WDO$N'; //Este é o contrato continuo do MT5 que não tem o valor do ativo alterado pelos ajustes das séreies históricas. O WDO$ tem o contrato contínuo com os valores das séreies anterioes ajustados
     const API_BASE_URL = 'http://127.0.0.1:8000';
     const WS_BASE_URL = 'ws://127.0.0.1:8000';
 
