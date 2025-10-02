@@ -1,5 +1,5 @@
 # language: pt
-    @fiborange
+    @fiborange @indicador
     Funcionalidade: Traçar níveis e canais do indicador Fiborange
     Como analista técnico
     Quero calcular linhas e canais a partir do preço de ajuste do dia anterior
