@@ -7,6 +7,17 @@ from functools import lru_cache
 from .. import mt5_connector
 from ..mt5_connector import TIMEFRAME_MAP
 
+import logging  # Adicione esta linha no topo, após os outros imports
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('backend.log'),  # Grava em arquivo
+        logging.StreamHandler()  # Também no console
+    ]
+)
+logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
 # Timezone de São Paulo para usar como padrão
@@ -93,11 +104,12 @@ def fetch_rates_from_mt5(symbol: str, timeframe_mt5: int, start_utc: datetime, e
         raise HTTPException(status_code=503, detail="Serviço MT5 indisponível.")
 
     # MT5 espera datetimes em UTC
-    print(symbol, timeframe_mt5, start_utc, end_utc)
+    logger.info(f"Buscando dados no MT5 para {symbol} de {start_utc} a {end_utc}...")
+
     rates = mt5.copy_rates_range(symbol, timeframe_mt5, start_utc, end_utc)
 
     if rates is None or len(rates) == 0:
-        print(f"Nenhum dado retornado do MT5. Erro: {mt5.last_error()}")
+        logger.warning(f"Nenhum dado retornado do MT5. Erro: {mt5.last_error()}")
         return []
 
     # Converte para DataFrame do Pandas para facilitar a manipulação

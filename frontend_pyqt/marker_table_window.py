@@ -29,8 +29,8 @@ class MarkerTableWindow(QWidget):
 
         # Layout superior para o nome do ativo
         top_layout = QHBoxLayout()
-        self.symbol_input = QLineEdit("WDOV25")
-        self.symbol_input.setPlaceholderText("Nome do Ativo (ex: WDOV25)")
+        self.symbol_input = QLineEdit("WDO$N")
+        self.symbol_input.setPlaceholderText("Nome do Ativo (ex: WDO$N)")
         top_layout.addWidget(self.symbol_input)
 
         layout.addLayout(top_layout)
