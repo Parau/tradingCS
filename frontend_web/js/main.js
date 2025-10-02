@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let candlestickSeries;
     let activeMarkers = []; // Array para rastrear os retângulos no gráfico
     let activeFiborange = null; //Rastrear o fiborange ativo
+    let activeVTC = null; // Rastrear o VTC ativo
 
     // Armazena os dados das jabulanis
     const jabulani = {
@@ -198,6 +199,92 @@ document.addEventListener('DOMContentLoaded', () => {
 		},
 	};
 }
+
+    /**
+     * Cria e plota os níveis do indicador VTC (Volatility Trading Channel).
+     * A especificação do comportamento está documentada em `VTC.feature`.
+     * A função calcula 7 níveis de preço baseados em um VFR (Valor de Referência)
+     * e os desenha no gráfico como linhas horizontais.
+     *
+     * @param {object} markerData - Os dados do marcador contendo o preço base.
+     * @param {string} markerData.Data - A data do marcador (ex: '2023-12-25').
+     * @param {number|string} markerData.Preco - O preço VFR para o cálculo.
+     * @returns {{levels: Array, destroy: Function}} Um objeto contendo os handles das linhas
+     * e uma função `destroy` para removê-las do gráfico.
+     */
+    function createVTC(markerData) {
+        // VFR (Valor de Referência) é o preço base para o cálculo
+        const vfr = Number(markerData.Preco);
+        const startSec = toUtcSeconds(markerData.Data, '09:00:00');
+        const endSec = toUtcSeconds(markerData.Data, '18:30:00');
+
+        // Conforme VTC.feature: Δ = VFR * 0,5%
+        const delta = vfr * 0.005;
+
+        // Níveis a serem calculados e seus rótulos
+        const levels = [
+            { label: 'EXCES+', formula: vfr + 1.5 * delta },
+            { label: 'DELTA+', formula: vfr + delta },
+            { label: '50%+',   formula: vfr + delta / 2 },
+            { label: 'VTC',    formula: vfr },
+            { label: '50%-',   formula: vfr - delta / 2 },
+            { label: 'DELTA-', formula: vfr - delta },
+            { label: 'EXCES-', formula: vfr - 1.5 * delta },
+        ];
+
+        const handles = [];
+
+        levels.forEach(level => {
+            // Arredondamento para 2 casas decimais (half-up)
+            const price = Number(level.formula.toFixed(2));
+
+            const lineData = [
+                { time: startSec, value: price },
+                { time: endSec, value: price },
+            ];
+
+            const isCenterLine = level.label === 'VTC';
+
+            // Estilo da linha
+            const lineStyle = {
+                color: isCenterLine ? 'rgba(255, 255, 0, 0.9)' : 'rgba(0, 150, 255, 0.7)',
+                lineWidth: isCenterLine ? 2 : 1,
+                lineStyle: isCenterLine ? LightweightCharts.LineStyle.Dashed : LightweightCharts.LineStyle.Solid,
+                lastValueVisible: false,
+                priceLineVisible: false,
+                crosshairMarkerVisible: false,
+            };
+
+            const lineSeries = chart.addSeries(LightweightCharts.LineSeries, lineStyle);
+            lineSeries.setData(lineData);
+
+            // Adiciona um rótulo de preço no eixo
+            lineSeries.createPriceLine({
+                price: price,
+                color: lineStyle.color,
+                lineWidth: 1,
+                lineStyle: LightweightCharts.LineStyle.Solid,
+                axisLabelVisible: true,
+                title: level.label,
+            });
+
+            handles.push({
+                label: level.label,
+                price: price,
+                series: lineSeries,
+            });
+        });
+
+        return {
+            levels: handles,
+            destroy() {
+                handles.forEach(h => {
+                    try { chart.removeSeries(h.series); }
+                    catch (e) { console.warn(`Falha ao remover série VTC (${h.label}):`, e); }
+                });
+            },
+        };
+    }
     /*----------------------------------------------------------------------------
     Função auxiliar para criar a marcação da "jabulani" (JABULANI_C ou JABULANI_V) que indica uma possível mudança na direção do preço
 
@@ -321,6 +408,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     activeFiborange = null;
                 }
 
+                if (activeVTC !== null) {
+                    console.log('Removing existing VTC before creating a new one.');
+                    activeVTC.destroy();
+                    activeVTC = null;
+                }
+
                 //Zera os dados das jabulanis
                 jabulani.C.data.length = 0; 
                 jabulani.V.data.length = 0;
@@ -437,6 +530,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         else if (markerData.Tipo.startsWith('JABULANI')) {
                             console.log(`Creating jabulani:`, markerData);
                             createJabulani(markerData);
+                        }
+                        else if (markerData.Tipo === 'VTC') {
+                            activeVTC = createVTC(markerData);
+                            console.log(`Creating VTC for marker:`, markerData);
                         }
                     });
                 });
