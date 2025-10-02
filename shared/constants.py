@@ -13,7 +13,7 @@ from typing import List, Literal
 
 # Tipos de marcação suportados pelo sistema
 # Utilizados tanto na validação do backend quanto na UI do frontend
-MARKER_TYPES: List[str] = ["POC_VENDA", "POC_COMPRA", "AJUSTE", "JABULANI_C", "JABULANI_V"]
+MARKER_TYPES: List[str] = ["POC_VENDA", "POC_COMPRA", "AJUSTE", "VTC", "JABULANI_C", "JABULANI_V"]
 
 # Tipo literal para validação de tipos no Pydantic (backend)
-MarkerTypeEnum = Literal['POC_VENDA', 'POC_COMPRA', 'AJUSTE', 'JABULANI_C', 'JABULANI_V']
+MarkerTypeEnum = Literal['POC_VENDA', 'POC_COMPRA', 'AJUSTE', 'VTC', 'JABULANI_C', 'JABULANI_V']

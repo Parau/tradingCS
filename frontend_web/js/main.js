@@ -240,16 +240,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const lineData = [
                 { time: startSec, value: price },
-                { time: endSec, value: price },
+                { time: endSec, value: price},
             ];
 
             const isCenterLine = level.label === 'VTC';
 
             // Estilo da linha
             const lineStyle = {
-                color: isCenterLine ? 'rgba(255, 255, 0, 0.9)' : 'rgba(0, 150, 255, 0.7)',
-                lineWidth: isCenterLine ? 2 : 1,
-                lineStyle: isCenterLine ? LightweightCharts.LineStyle.Dashed : LightweightCharts.LineStyle.Solid,
+                color: isCenterLine ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.7)', // Estou usando branco para as duas mas deixo a opção aqui no código caso queira usar cores diferentes.
+                lineWidth: isCenterLine ? 1 : 1, // Estou usando 1 para as duas mas deixo a opção aqui no código caso queira usar por exemplo 2 no centro e 1 nas outras.
+                lineStyle: isCenterLine ? LightweightCharts.LineStyle.Dashed : LightweightCharts.LineStyle.Dashed, // Estou usando linha pontilhada para as duas mas deixo a opção aqui no código caso queira usar por exemplo pontilhado no centro e sólido nas outras.
                 lastValueVisible: false,
                 priceLineVisible: false,
                 crosshairMarkerVisible: false,
@@ -258,14 +258,35 @@ document.addEventListener('DOMContentLoaded', () => {
             const lineSeries = chart.addSeries(LightweightCharts.LineSeries, lineStyle);
             lineSeries.setData(lineData);
 
+            /* Anteriormente estava colocando o rótulo usando markers, mas mudei para priceLine porque achei que ficou melhor.
+             Se quiser voltar a usar markers, descomente o código abaixo e comente o bloco que cria o priceLine.
+             OUTRA COISA SE QUISER MAIS TARDE PODE USAR OS MARKERS NO LUGAR DA SERIE DE PONTOS PARA A JABULANI, FICA AQUI O EXEMPLO DE COMO USAR.
+             Note que markers não são removidos automaticamente quando a série é removida, então teria que guardar referência aos markers criados para removê-los na função destroy().
+ 
             // Adiciona um rótulo de preço no eixo
-            lineSeries.createPriceLine({
+             const markers = [
+            {
+                time: endSec,         
+                position: 'atPriceMiddle',     // 'belowBar' | 'inBar' etc.
                 price: price,
-                color: lineStyle.color,
-                lineWidth: 1,
-                lineStyle: LightweightCharts.LineStyle.Solid,
-                axisLabelVisible: true,
-                title: level.label,
+                shape: 'circle',          // 'circle' | 'arrowUp' | 'arrowDown'...
+                color: 'rgba(255, 255, 255, 1)',
+                text: level.label,
+                size: 0,                  // Tamanho do marcador (0 para ocultar o marcador)
+            },
+            ];
+            // cria o plugin e aplica os marcadores
+            const seriesMarkers = LightweightCharts.createSeriesMarkers(lineSeries, markers);
+            Fim do comentário sobre o markers*/
+
+            const pl = lineSeries.createPriceLine({
+                price,
+                title: level.label,     // texto que aparece no eixo
+                axisLabelVisible: true,     // mostra o label no eixo
+                axisLabelColor: '#2d2d2d',  // (opcional) fundo do label do eixo
+                axisLabelTextColor: '#fff', // (opcional) cor do texto do label
+                lineVisible: false,         // ← esconde a linha horizontal
+                // color, lineWidth, lineStyle podem ser ignorados se lineVisible=false
             });
 
             handles.push({
@@ -274,6 +295,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 series: lineSeries,
             });
         });
+
+        // Na linha central coloca um canal para marcar uma faixa 0.1% acima e abaixo do VTC
+        const baselinePrice = levels.find(level => level.label === 'VTC').formula;
+        const baselineMargin = baselinePrice * 0.001; // 0.1% do VTC
+        //faixa acima implementada usando baselineSeries do LightweightCharts
+        const topMargin = chart.addSeries(LightweightCharts.BaselineSeries, { baseValue: { type: 'price', price: baselinePrice }, topLineColor: 'rgba(255, 255, 255, 0)', topFillColor1: 'rgba(28, 222, 6, 1)', topFillColor2: 'rgba(28, 222, 6, 0.1)', bottomLineColor: 'rgba(255, 255, 255, 0)', bottomFillColor1: 'rgba(255, 37, 34, 1)', bottomFillColor2: 'rgba(255, 147, 145, 0.1)' });
+        const data = [{ value: baselinePrice + baselineMargin, time: startSec }, { value: baselinePrice + baselineMargin, time: endSec }];
+        topMargin.setData(data);
+        handles.push({ label: 'VTC+0.1%', price: baselinePrice + baselineMargin, series: topMargin });
+        //faixa abaixo implementada usando baselineSeries do LightweightCharts
+        const bottomMargin = chart.addSeries(LightweightCharts.BaselineSeries, { baseValue: { type: 'price', price: baselinePrice }, topLineColor: 'rgba(255, 255, 255, 0)', topFillColor1: 'rgba(28, 222, 6, 1)', topFillColor2: 'rgba(28, 222, 6, 0.1)', bottomLineColor: 'rgba(255, 255, 255, 0)', bottomFillColor1: 'rgba(255, 37, 34, 0.1)', bottomFillColor2: 'rgba(255, 147, 145, 1)' });
+        const data2 = [{ value: baselinePrice - baselineMargin, time: startSec }, { value: baselinePrice - baselineMargin, time: endSec }];
+        bottomMargin.setData(data2);
+        handles.push({ label: 'VTC-0.1%', price: baselinePrice - baselineMargin, series: bottomMargin });
 
         return {
             levels: handles,
