@@ -63,7 +63,7 @@ class CaptureManager(QObject):
     
     error_occurred = pyqtSignal(str)
     
-    def __init__(self, csv_file_path: str = "capture_config.csv"):
+    def __init__(self, csv_file_path: str = "config_capture_rect.csv"):
         super().__init__()
         self.logger = logging.getLogger(__name__)
         self.csv_file_path = csv_file_path

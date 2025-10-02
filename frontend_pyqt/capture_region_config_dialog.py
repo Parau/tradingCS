@@ -15,7 +15,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QTabWidget,
                            QGroupBox, QFormLayout, QSpinBox, QLineEdit,
                            QCheckBox, QComboBox, QPushButton, QTableWidget,
                            QTableWidgetItem, QHeaderView, QColorDialog,
-                           QLabel, QSlider, QMessageBox, QWidget)  # Atualizado em: 2024-12-28 — Adicionado QWidget ao import
+                           QLabel, QSlider, QMessageBox, QWidget, QApplication)  # Atualizado em: 2024-12-28 — Adicionado QApplication ao import para resolver erro de nome não definido
 from PyQt6.QtGui import QColor
 
 
@@ -65,6 +65,9 @@ class CaptureRegionConfigDialog(QDialog):
         # Botões de ação
         buttons_layout = QHBoxLayout()
         
+        self.save_positions_btn = QPushButton("Salvar Posição Janelas")
+        self.save_positions_btn.clicked.connect(self._save_window_positions)
+        
         self.apply_btn = QPushButton("Aplicar")
         self.apply_btn.clicked.connect(self._apply_changes)
         
@@ -75,6 +78,7 @@ class CaptureRegionConfigDialog(QDialog):
         self.cancel_btn.clicked.connect(self.reject)
         
         buttons_layout.addStretch()
+        buttons_layout.addWidget(self.save_positions_btn)
         buttons_layout.addWidget(self.apply_btn)
         buttons_layout.addWidget(self.ok_btn)
         buttons_layout.addWidget(self.cancel_btn)
@@ -250,6 +254,76 @@ class CaptureRegionConfigDialog(QDialog):
         """Atualiza label da espessura."""
         value = self.thickness_slider.value()
         self.thickness_label.setText(f"{value} px")
+
+    def _save_window_positions(self):
+        """
+        Salva as posições atuais das janelas de captura em config_capture_win_pos.csv.
+        
+        Coleta informações de cada janela: nome, display ID, posição X/Y, largura e altura.
+        """
+        try:
+            csv_path = Path("config_capture_win_pos.csv")
+            
+            # Coleta dados das janelas
+            window_data = []
+            app = self.manager.app if hasattr(self.manager, 'app') else None
+            if not app:
+                app = QApplication.instance()
+            
+            screens = app.screens() if app else []
+            
+            for window_name, window in self.manager.capture_windows.items():
+                try:
+                    # Obtém geometria da janela
+                    geometry = window.geometry()
+                    x, y = geometry.x(), geometry.y()
+                    width, height = geometry.width(), geometry.height()
+                    
+                    # Determina o display ID baseado na posição da janela
+                    display_id = 1  # Padrão
+                    for i, screen in enumerate(screens):
+                        screen_geom = screen.geometry()
+                        if screen_geom.contains(x, y):
+                            display_id = i + 1  # IDs começam em 1
+                            break
+                    
+                    window_data.append({
+                        'window_name': window_name,
+                        'display_id': display_id,
+                        'x': x,
+                        'y': y,
+                        'width': width,
+                        'height': height
+                    })
+                    
+                except Exception as e:
+                    self.logger.warning(f"Erro ao obter dados da janela {window_name}: {e}")
+            
+            # Salva no CSV
+            with open(csv_path, 'w', newline='', encoding='utf-8') as file:
+                writer = csv.writer(file)
+                
+                # Cabeçalho
+                writer.writerow(['NOME_JANELA', 'ID_DISPLAY', 'X', 'Y', 'LARGURA', 'ALTURA'])
+                
+                # Dados
+                for data in window_data:
+                    writer.writerow([
+                        data['window_name'],
+                        str(data['display_id']),
+                        str(data['x']),
+                        str(data['y']),
+                        str(data['width']),
+                        str(data['height'])
+                    ])
+            
+            self.logger.info(f"Posições das janelas salvas em: {csv_path}")
+            QMessageBox.information(self, "Sucesso", f"Posições salvas em {csv_path}")
+            
+        except Exception as e:
+            error_msg = f"Erro ao salvar posições das janelas: {e}"
+            self.logger.error(error_msg)
+            QMessageBox.critical(self, "Erro", error_msg)
 
     def _apply_changes(self):
         """Aplica mudanças sem fechar diálogo."""

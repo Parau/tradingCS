@@ -7,6 +7,8 @@ com opções de configuração e redimensionamento proporcional.
 
 import logging
 from typing import List
+import csv
+from pathlib import Path
 
 from PyQt6.QtCore import Qt, QRect
 from PyQt6.QtGui import QPixmap, QPainter, QIcon
@@ -202,10 +204,9 @@ class CaptureWindow(QWidget):
     def _setup_window_properties(self):
         """Configura propriedades da janela otimizada para exibição de conteúdo."""
         self.setWindowTitle(f"📹 {self.window_name}")  # Título mais compacto
-        self.resize(450, 350)  # Tamanho inicial ligeiramente maior para melhor visualização
         
-        # Remove decorações desnecessárias se possível
-        # self.setWindowFlags(Qt.WindowType.FramelessWindowHint)  # Opcional: janela sem borda
+        # Carrega posição da janela do CSV se disponível
+        self._load_window_position()
         
         # Define ícone se disponível
         try:
@@ -216,6 +217,45 @@ class CaptureWindow(QWidget):
         # Otimizações de renderização
         self.setAttribute(Qt.WidgetAttribute.WA_OpaquePaintEvent)  # Otimização de pintura
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)  # Remove background sistema
+
+    def _load_window_position(self):
+        """
+        Carrega a posição e tamanho da janela do arquivo config_capture_win_pos.csv.
+        
+        Se o nome da janela for encontrado no CSV, define a geometria da janela.
+        Caso contrário, usa valores padrão.
+        """
+        csv_path = Path("config_capture_win_pos.csv")
+        
+        if not csv_path.exists():
+            # Arquivo não existe, usa padrão
+            self.resize(450, 350)
+            return
+        
+        try:
+            with open(csv_path, 'r', encoding='utf-8') as file:
+                reader = csv.DictReader(file, skipinitialspace=True)
+                
+                for row in reader:
+                    if row['NOME_JANELA'].strip() == self.window_name:
+                        # Encontrou a configuração para esta janela
+                        x = int(row['X'])
+                        y = int(row['Y'])
+                        width = int(row['LARGURA'])
+                        height = int(row['ALTURA'])
+                        
+                        # Define a geometria da janela
+                        self.setGeometry(x, y, width, height)
+                        self.logger.info(f"Janela {self.window_name} posicionada em ({x},{y}) {width}x{height}")
+                        return
+                
+            # Não encontrou configuração, usa padrão
+            self.resize(450, 350)
+            self.logger.info(f"Configuração não encontrada para {self.window_name}, usando padrão")
+            
+        except Exception as e:
+            self.logger.warning(f"Erro ao carregar posição da janela {self.window_name}: {e}")
+            self.resize(450, 350)  # Fallback para padrão
 
     def _show_config_dialog(self):
         """Exibe diálogo de configuração."""
