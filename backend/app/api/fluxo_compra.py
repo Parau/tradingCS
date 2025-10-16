@@ -68,6 +68,8 @@ def get_fluxo_compra_data(symbol: str, date_str: str, main_chart_data: list):
                 price = segment_df['close'].iloc[0] # Use the price at the start of the segment
                 for _, candle in segment_df.iterrows():
                     lines.append({'time': int(candle['time'].timestamp()), 'value': price})
+                # Add a whitespace point right after this segment ends
+                lines.append({'time': int(end_time.timestamp())})
             start_time = None
         elif event['type'] == 'END_OF_DAY' and is_compra_active:
             end_time = event['time']
