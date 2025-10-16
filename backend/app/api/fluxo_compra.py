@@ -3,6 +3,10 @@ from datetime import datetime, time
 import pandas as pd
 import pytz
 import os
+import logging
+
+# Configure logging
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 SAO_PAULO_TZ = pytz.timezone("America/Sao_Paulo")
@@ -17,19 +21,24 @@ def get_fluxo_compra_data(symbol: str, date_str: str, main_chart_data: list):
     base_symbol = symbol.split('$')[0]
     filename = f"{base_symbol}_FC_{date_str}.csv"
     filepath = os.path.join(DATA_DIR, filename)
+    logger.info(f"Procurando arquivo de fluxo de compra: {filepath}")
 
     if not os.path.exists(filepath):
+        logger.warning(f"Arquivo de fluxo não encontrado para {symbol} na data {date_str}.")
         return [] # Return empty list if the file doesn't exist for the given day
 
     try:
-        df = pd.read_csv(filepath, sep='\t')
+        df = pd.read_csv(filepath, sep=',')
         df['DATETIME'] = pd.to_datetime(df['DATA'] + ' ' + df['HORA'], format='%Y.%m.%d %H:%M:%S')
         df['DATETIME'] = df['DATETIME'].apply(lambda x: SAO_PAULO_TZ.localize(x).astimezone(pytz.utc))
+        logger.info(f"Arquivo {filename} lido com sucesso, {len(df)} sinais encontrados.")
     except Exception as e:
+        logger.error(f"Erro ao processar o arquivo CSV {filename}: {e}")
         raise HTTPException(status_code=500, detail=f"Erro ao processar o arquivo CSV: {e}")
 
     main_df = pd.DataFrame(main_chart_data)
     if main_df.empty:
+        logger.warning("Dados históricos de candles estão vazios. Não é possível gerar o fluxo de compra.")
         return []
     main_df['time'] = pd.to_datetime(main_df['time'], unit='s', utc=True)
 
@@ -70,6 +79,7 @@ def get_fluxo_compra_data(symbol: str, date_str: str, main_chart_data: list):
             is_compra_active = False
 
 
+    logger.info(f"Retornando {len(lines)} pontos de dados para a linha de fluxo de compra.")
     return lines
 
 @router.get("/history/fluxo_compra/{symbol}/{date}/{timeframe}")
