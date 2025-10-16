@@ -14,7 +14,8 @@ def get_fluxo_compra_data(symbol: str, date_str: str, main_chart_data: list):
     """
     Reads and parses Fluxo Compra CSV data and aligns it with historical price data.
     """
-    filename = f"{symbol}_FC_{date_str}.csv"
+    base_symbol = symbol.split('$')[0]
+    filename = f"{base_symbol}_FC_{date_str}.csv"
     filepath = os.path.join(DATA_DIR, filename)
 
     if not os.path.exists(filepath):

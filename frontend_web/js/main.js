@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Fetch Fluxo Compra data
             const date = start.split('T')[0];
-            const fluxoCompraUrl = `${API_BASE_URL}/api/history/fluxo_compra/WDO/${date}/${timeframe}`;
+            const fluxoCompraUrl = `${API_BASE_URL}/api/history/fluxo_compra/${SYMBOL}/${date}/${timeframe}`;
             console.log(`Fetching Fluxo Compra: ${fluxoCompraUrl}`);
             const fluxoCompraResponse = await fetch(fluxoCompraUrl);
             if (fluxoCompraResponse.ok) {
