@@ -23,11 +23,30 @@ O sistema é composto por três componentes principais que rodam de forma indepe
 
 ### Dados Históricos
 - Devem ser servidos por endpoints **HTTP RESTful** no FastAPI.
-- A API deve consultar os dados históricos diretamente do MT5 sob demanda.
-- Implemente um **cache em memória** nos endpoints de dados históricos para minimizar chamadas repetidas ao MT5.
+- Dados de ativos da bolsa como DOL, WDO, WIN a API deve consultar os dados históricos diretamente do MT5 sob demanda.
+- Dados especiais do FluxoReal (como fluxo de compra e fluxo de venda) deverão ser lidos de arquivos CSV.
 
 ### Dados em tempo real
 - Usando websockets
+
+## FluxoReal
+Além dos dados da bolsa de valores que são obtidos diretamente do MT5 o sistema também trabalha com dados especiais chamados de FluxoReal. Estes dados contém informações especiais para auxiliar na tomada de decisão de trade. Estes dados estão armazenados no formato CSV na pasta `backend/data/`
+
+### Fluxo Compra
+Este dado especial do FluxoReal indica momentos em que o fluxo do respectivo ativo é considerado como comprado.
+O nome do arquivo indica o ativo + FC + YYYY-MM-DD. Por exemplo: WDO_FC_2025-10-16.csv
+Exemplo de arquivo
+DATA	HORA	SINAL
+2025.10.08	9:00:31	LIGA_COMPRA
+2025.10.08	9:15:22	DESLIGA_COMPRA
+2025.10.08	10:00:02	LIGA_COMPRA
+2025.10.08	11:55:15	DESLIGA_COMPRA
+2025.10.08	15:23:17	LIGA_COMPRA
+2025.10.08	16:01:22	DESLIGA_COMPRA
+2025.10.08	16:23:01	LIGA_COMPRA
+
+No exemplo é possível perceber que a última compra continua ligada. Para plotar este dado o sistema terá que assumir que o sinal de compra deve ser mostrado até a hora atual do sistema.
+Visualmente no lightweight-charts o fluxo de compra é sinalizado por meio de uma linha vermelha no gráfico.
 
 ## Documentação (uso de comentários dentro do código de programação)
 ### Formato

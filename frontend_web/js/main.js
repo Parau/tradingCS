@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let activeMarkers = []; // Array para rastrear os retângulos no gráfico
     let activeFiborange = null; //Rastrear o fiborange ativo
     let activeVTC = null; // Rastrear o VTC ativo
+    let fluxoCompraSeries = null; // Rastrear a série do Fluxo de Compra
 
     // Armazena os dados das jabulanis
     const jabulani = {
@@ -352,6 +353,27 @@ document.addEventListener('DOMContentLoaded', () => {
         entry.series.setData(entry.data);
     }
 
+    /*----------------------------------------------------------------------------
+    Função auxiliar para criar a linha do Fluxo de Compra
+    ---------------------------------------------------------------------------*/
+    function createFluxoCompra(data) {
+        if (fluxoCompraSeries) {
+            chart.removeSeries(fluxoCompraSeries);
+            fluxoCompraSeries = null;
+        }
+
+        if (data && data.length > 0) {
+            fluxoCompraSeries = chart.addSeries(LightweightCharts.LineSeries, {
+                color: 'red',
+                lineWidth: 2,
+                priceLineVisible: false,
+                lastValueVisible: false,
+                crosshairMarkerVisible: false,
+            });
+            fluxoCompraSeries.setData(data);
+        }
+    }
+
     // --- Data Fetching and WebSocket ---
     async function loadChartData() {
         const timeframe = timeframeSelect.value;
@@ -392,8 +414,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log(`Point ${index}: time=${formattedTime}, open=${point.open}, high=${point.high}, low=${point.low}, close=${point.close}`);
             });*/
             candlestickSeries.setData(data);
-
             chart.timeScale().fitContent();
+
+            // Fetch Fluxo Compra data
+            const date = start.split('T')[0];
+            const fluxoCompraUrl = `${API_BASE_URL}/api/history/fluxo_compra/WDO/${date}/${timeframe}`;
+            console.log(`Fetching Fluxo Compra: ${fluxoCompraUrl}`);
+            const fluxoCompraResponse = await fetch(fluxoCompraUrl);
+            if (fluxoCompraResponse.ok) {
+                const fluxoCompraData = await fluxoCompraResponse.json();
+                console.log(`Received ${fluxoCompraData.length} Fluxo Compra data points.`);
+                createFluxoCompra(fluxoCompraData);
+            } else {
+                console.error('Erro ao buscar dados de Fluxo de Compra');
+            }
+
         } catch (error) {
             console.error(error);
             alert(error.message);
