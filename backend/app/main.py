@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from . import mt5_connector
-from .api import history, markers, websockets
+from .api import history, markers, websockets, fluxo_compra
 
 # Constrói o caminho para o diretório frontend_web
 static_file_path = os.path.join(os.path.dirname(__file__), "..", "..", "frontend_web")
@@ -26,6 +26,7 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(history.router, prefix="/api", tags=["History"])
 app.include_router(markers.router, prefix="/api", tags=["Markers"])
 app.include_router(websockets.router, tags=["WebSockets"])
+app.include_router(fluxo_compra.router, prefix="/api", tags=["FluxoCompra"])
 
 @app.get("/health")
 def read_root():
