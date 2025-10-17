@@ -61,14 +61,22 @@ def get_fluxo_compra_data(symbol: str, date_str: str, main_chart_data: list):
             is_compra_active = False
             end_time = signal['time']
             # Find the price at the start of the segment
-            start_candle = main_df[main_df['time_dt'] >= start_time].iloc[0]
-            active_segments.append({'start': start_time, 'end': end_time, 'price': start_candle['close']})
+            relevant_candles = main_df[main_df['time_dt'] >= start_time]
+            if not relevant_candles.empty:
+                start_candle = relevant_candles.iloc[0]
+                active_segments.append({'start': start_time, 'end': end_time, 'price': start_candle['close']})
+            else:
+                logger.warning(f"Sinal LIGA_COMPRA em {start_time} ignorado pois não há candles posteriores.")
             start_time = None
 
     # Handle case where the last signal was LIGA_COMPRA
     if is_compra_active and start_time:
-        start_candle = main_df[main_df['time_dt'] >= start_time].iloc[0]
-        active_segments.append({'start': start_time, 'end': last_time, 'price': start_candle['close']})
+        relevant_candles = main_df[main_df['time_dt'] >= start_time]
+        if not relevant_candles.empty:
+            start_candle = relevant_candles.iloc[0]
+            active_segments.append({'start': start_time, 'end': last_time, 'price': start_candle['close']})
+        else:
+            logger.warning(f"Sinal LIGA_COMPRA final em {start_time} ignorado pois não há candles posteriores.")
 
     # 2. Generate a point for every candle, marking it as active or not
     output_points = []
