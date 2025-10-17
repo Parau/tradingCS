@@ -80,20 +80,27 @@ def get_fluxo_compra_data(symbol: str, date_str: str, main_chart_data: list):
 
     # 2. Generate a point for every candle, marking it as active or not
     output_points = []
+    active_price = None # Track the price of the last active segment
     for _, candle in main_df.iterrows():
         candle_time = candle['time_dt']
         is_in_segment = False
-        flow_price = candle['close'] # Default to candle's own close price
+        current_price = candle['close']
 
         for segment in active_segments:
             if segment['start'] <= candle_time < segment['end']:
                 is_in_segment = True
-                flow_price = segment['price'] # Use the segment's start price
+                current_price = segment['price'] # Use the segment's start price
+                active_price = current_price # Remember this price
                 break
+
+        # If we just exited a segment, the first transparent point should hold the line
+        if not is_in_segment and active_price is not None:
+            current_price = active_price
+            active_price = None # Reset after using it once
 
         output_points.append({
             'time': int(candle['time']),
-            'value': flow_price,
+            'value': current_price,
             'active': is_in_segment
         })
 
