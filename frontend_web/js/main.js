@@ -364,13 +364,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (data && data.length > 0) {
             fluxoCompraSeries = chart.addSeries(LightweightCharts.LineSeries, {
-                color: 'red',
+                // A cor será definida por ponto, então a cor base pode ser transparente
+                color: 'transparent',
                 lineWidth: 2,
                 priceLineVisible: false,
                 lastValueVisible: false,
                 crosshairMarkerVisible: false,
             });
-            fluxoCompraSeries.setData(data);
+
+            const coloredData = data.map(point => ({
+                time: point.time,
+                value: point.value,
+                color: point.active ? 'red' : 'transparent',
+            }));
+
+            fluxoCompraSeries.setData(coloredData);
         }
     }
 

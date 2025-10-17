@@ -40,47 +40,57 @@ def get_fluxo_compra_data(symbol: str, date_str: str, main_chart_data: list):
     if main_df.empty:
         logger.warning("Dados históricos de candles estão vazios. Não é possível gerar o fluxo de compra.")
         return []
-    main_df['time'] = pd.to_datetime(main_df['time'], unit='s', utc=True)
+    main_df['time_dt'] = pd.to_datetime(main_df['time'], unit='s', utc=True)
 
-    lines = []
+    # 1. Find all active segments and their start prices
+    active_segments = []
     is_compra_active = False
     start_time = None
+    last_time = main_df['time_dt'].max()
 
-    all_events = []
-    for _, row in df.iterrows():
-        all_events.append({'time': row['DATETIME'], 'type': row['SINAL']})
+    # Create a sorted list of all signals
+    signals = [{'time': dt, 'type': sig} for dt, sig in zip(df['DATETIME'], df['SINAL'])]
+    signals.sort(key=lambda x: x['time'])
 
-    # Add a synthetic "end of day" event to handle open ranges
-    last_time = main_df['time'].max()
-    all_events.append({'time': last_time, 'type': 'END_OF_DAY'})
 
-    all_events.sort(key=lambda x: x['time'])
-
-    for event in all_events:
-        if event['type'] == 'LIGA_COMPRA' and not is_compra_active:
+    for signal in signals:
+        if signal['type'] == 'LIGA_COMPRA' and not is_compra_active:
             is_compra_active = True
-            start_time = event['time']
-        elif event['type'] == 'DESLIGA_COMPRA' and is_compra_active:
+            start_time = signal['time']
+        elif signal['type'] == 'DESLIGA_COMPRA' and is_compra_active:
             is_compra_active = False
-            end_time = event['time']
-            segment_df = main_df[(main_df['time'] >= start_time) & (main_df['time'] <= end_time)]
-            if not segment_df.empty:
-                price = segment_df['close'].iloc[0] # Use the price at the start of the segment
-                for _, candle in segment_df.iterrows():
-                    lines.append({'time': int(candle['time'].timestamp()), 'value': price})
+            end_time = signal['time']
+            # Find the price at the start of the segment
+            start_candle = main_df[main_df['time_dt'] >= start_time].iloc[0]
+            active_segments.append({'start': start_time, 'end': end_time, 'price': start_candle['close']})
             start_time = None
-        elif event['type'] == 'END_OF_DAY' and is_compra_active:
-            end_time = event['time']
-            segment_df = main_df[(main_df['time'] >= start_time) & (main_df['time'] <= end_time)]
-            if not segment_df.empty:
-                price = segment_df['close'].iloc[0]
-                for _, candle in segment_df.iterrows():
-                    lines.append({'time': int(candle['time'].timestamp()), 'value': price})
-            is_compra_active = False
 
+    # Handle case where the last signal was LIGA_COMPRA
+    if is_compra_active and start_time:
+        start_candle = main_df[main_df['time_dt'] >= start_time].iloc[0]
+        active_segments.append({'start': start_time, 'end': last_time, 'price': start_candle['close']})
 
-    logger.info(f"Retornando {len(lines)} pontos de dados para a linha de fluxo de compra.")
-    return lines
+    # 2. Generate a point for every candle, marking it as active or not
+    output_points = []
+    for _, candle in main_df.iterrows():
+        candle_time = candle['time_dt']
+        is_in_segment = False
+        flow_price = candle['close'] # Default to candle's own close price
+
+        for segment in active_segments:
+            if segment['start'] <= candle_time <= segment['end']:
+                is_in_segment = True
+                flow_price = segment['price'] # Use the segment's start price
+                break
+
+        output_points.append({
+            'time': int(candle['time']),
+            'value': flow_price,
+            'active': is_in_segment
+        })
+
+    logger.info(f"Retornando {len(output_points)} pontos de dados para a linha de fluxo de compra.")
+    return output_points
 
 @router.get("/history/fluxo_compra/{symbol}/{date}/{timeframe}")
 async def get_fluxo_compra(
