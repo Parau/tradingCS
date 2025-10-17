@@ -29,8 +29,10 @@ def get_fluxo_compra_data(symbol: str, date_str: str, main_chart_data: list):
 
     try:
         df = pd.read_csv(filepath, sep=',')
-        df['DATETIME'] = pd.to_datetime(df['DATA'] + ' ' + df['HORA'], format='%Y.%m.%d %H:%M:%S')
-        df['DATETIME'] = df['DATETIME'].apply(lambda x: SAO_PAULO_TZ.localize(x).astimezone(pytz.utc))
+        # Create a naive datetime column first
+        naive_datetime = pd.to_datetime(df['DATA'] + ' ' + df['HORA'], format='%Y.%m.%d %H:%M:%S')
+        # Localize to São Paulo time, then convert to UTC
+        df['DATETIME'] = naive_datetime.dt.tz_localize('America/Sao_Paulo').dt.tz_convert('UTC')
         logger.info(f"Arquivo {filename} lido com sucesso, {len(df)} sinais encontrados.")
     except Exception as e:
         logger.error(f"Erro ao processar o arquivo CSV {filename}: {e}")
