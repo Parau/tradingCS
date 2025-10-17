@@ -86,7 +86,7 @@ def get_fluxo_compra_data(symbol: str, date_str: str, main_chart_data: list):
         flow_price = candle['close'] # Default to candle's own close price
 
         for segment in active_segments:
-            if segment['start'] <= candle_time <= segment['end']:
+            if segment['start'] <= candle_time < segment['end']:
                 is_in_segment = True
                 flow_price = segment['price'] # Use the segment's start price
                 break
