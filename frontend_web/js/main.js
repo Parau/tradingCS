@@ -364,13 +364,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (data && data.length > 0) {
             fluxoCompraSeries = chart.addSeries(LightweightCharts.LineSeries, {
-                color: 'red',
+                // A cor será definida por ponto, então a cor base pode ser transparente
+                color: 'transparent',
                 lineWidth: 2,
                 priceLineVisible: false,
                 lastValueVisible: false,
                 crosshairMarkerVisible: false,
             });
-            fluxoCompraSeries.setData(data);
+
+            const coloredData = data.map(point => ({
+                time: point.time,
+                value: point.value,
+                color: point.active ? 'red' : 'transparent',
+            }));
+
+            fluxoCompraSeries.setData(coloredData);
         }
     }
 
@@ -418,7 +426,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Fetch Fluxo Compra data
             const date = start.split('T')[0];
-            const fluxoCompraUrl = `${API_BASE_URL}/api/history/fluxo_compra/WDO/${date}/${timeframe}`;
+            const fluxoCompraUrl = `${API_BASE_URL}/api/history/fluxo_compra/${SYMBOL}/${date}/${timeframe}`;
             console.log(`Fetching Fluxo Compra: ${fluxoCompraUrl}`);
             const fluxoCompraResponse = await fetch(fluxoCompraUrl);
             if (fluxoCompraResponse.ok) {
